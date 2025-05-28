@@ -37,9 +37,10 @@ app.use(
 );
 
 // CORS configuration
+console.log("CORS ",process.env.CORS_ORIGIN?.split(","));
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3000"],
+    origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3002"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],

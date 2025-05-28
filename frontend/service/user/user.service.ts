@@ -17,18 +17,18 @@ export const UserService = {
   },
 
   register: async ({
-    username,
     email,
     password,
+    ethAddress,
   }: {
-    username: string;
     email: string;
     password: string;
+    ethAddress?: string;
   }) => {
     const data = {
-      username: username,
       email: email,
       password: password,
+      ...(ethAddress && { ethAddress }),
     };
     return await Fetch.post("/auth/register", data, config);
   },
@@ -36,10 +36,9 @@ export const UserService = {
   logout: (context = null) => {
     CookieHelper.destroy({ key: "token", context });
   },
-  // get user details
-  getUserDetails: async ({ token = "", context = null }) => {
-    // const userToken = CookieHelper.get({ key: "token", context });
-    const userToken = token;
+  // get user profile
+  getUserProfile: async (context = null) => {
+    const userToken = CookieHelper.get({ key: "token", context });
 
     const _config = {
       headers: {
@@ -48,7 +47,7 @@ export const UserService = {
       },
     };
 
-    return await Fetch.get(`/user/me`, _config);
+    return await Fetch.get(`/auth/profile`, _config);
   },
 
   findAll: async (context = null) => {
@@ -99,35 +98,11 @@ export const UserService = {
     return await Fetch.get(`/user/profile/${username}`, _config);
   },
 
-  update: async (
+  updateProfile: async (
     {
-      fname,
-      lname,
-      date_of_birth,
-      city,
-      country,
-      organization,
-      recipient_name,
-      recipient_zip_code,
-      recipient_country,
-      recipient_state,
-      recipient_city,
-      recipient_address,
-      recipient_phone_number,
+      ethAddress,
     }: {
-      fname: string;
-      lname: string;
-      date_of_birth: string;
-      city: string;
-      country: string;
-      organization: string;
-      recipient_name: string;
-      recipient_zip_code: string;
-      recipient_country: string;
-      recipient_state: string;
-      recipient_city: string;
-      recipient_address: string;
-      recipient_phone_number: string;
+      ethAddress?: string;
     },
     context = null
   ) => {
@@ -141,54 +116,21 @@ export const UserService = {
     };
 
     const data = {
-      fname: fname,
-      lname: lname,
-      date_of_birth: date_of_birth,
-      city: city,
-      country: country,
-      organization: organization,
-      recipient_name: recipient_name,
-      recipient_zip_code: recipient_zip_code,
-      recipient_country: recipient_country,
-      recipient_state: recipient_state,
-      recipient_city: recipient_city,
-      recipient_address: recipient_address,
-      recipient_phone_number: recipient_phone_number,
+      ...(ethAddress !== undefined && { ethAddress }),
     };
 
-    return await Fetch.patch(`/user`, data, _config);
+    return await Fetch.put(`/auth/profile`, data, _config);
   },
 
-  updateAvatar: async (data: any, context = null) => {
-    const userToken = CookieHelper.get({ key: "token", context });
-
-    const _config = {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + userToken,
-        "content-type": "multipart/form-data",
-      },
-    };
-
-    return await Fetch.patch(`/user/avatar`, data, _config);
-  },
-
-  //
-  create: async (
+  changePassword: async (
     {
-      fname,
-      lname,
-      username,
-      email,
-      role_id,
+      currentPassword,
+      newPassword,
     }: {
-      fname: string;
-      lname: string;
-      username: string;
-      email: string;
-      role_id: number;
+      currentPassword: string;
+      newPassword: string;
     },
-    context: any = null
+    context = null
   ) => {
     const userToken = CookieHelper.get({ key: "token", context });
 
@@ -198,27 +140,17 @@ export const UserService = {
         Authorization: "Bearer " + userToken,
       },
     };
+
     const data = {
-      fname: fname,
-      lname: lname,
-      username: username,
-      email: email,
-      role_id: role_id,
+      currentPassword,
+      newPassword,
     };
 
-    return await Fetch.post(`/user`, data, _config);
+    return await Fetch.put(`/auth/change-password`, data, _config);
   },
 
-  // TODO
-  confirm: async (
-    {
-      id,
-      token,
-      email,
-      password,
-    }: { id: number; token: string; email: string; password: string },
-    context: any = null
-  ) => {
+  // For admin use
+  getAllUsers: async (context = null) => {
     const userToken = CookieHelper.get({ key: "token", context });
 
     const _config = {
@@ -228,13 +160,6 @@ export const UserService = {
       },
     };
 
-    const data = {
-      id: id,
-      token: token,
-      email: email,
-      password: password,
-    };
-
-    return await Fetch.patch(`/user/${id}/password`, data, _config);
+    return await Fetch.get(`/auth/users`, _config);
   },
 };

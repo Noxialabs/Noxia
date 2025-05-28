@@ -21,7 +21,6 @@ router.get('/', (req, res) => {
     documentation: {
       postman: '/api/docs/postman',
       swagger: '/api/docs/swagger',
-      github: 'https://github.com/999plus/backend'
     },
     endpoints: {
       authentication: {
