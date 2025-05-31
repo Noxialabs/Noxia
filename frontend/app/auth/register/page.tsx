@@ -161,7 +161,7 @@ export default function Register() {
           {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
         </div>
 
-        <div className="space-y-2">
+       {/*  <div className="space-y-2">
           <label htmlFor="ethAddress" className="text-sm font-medium text-foreground">
             Ethereum Address (Optional)
           </label>
@@ -176,7 +176,7 @@ export default function Register() {
           />
           {errors.ethAddress && <p className="text-sm text-destructive">{errors.ethAddress}</p>}
         </div>
-
+ */}
         <Button
           type="submit"
           disabled={isLoading}

@@ -8,8 +8,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { UserService } from "@/service/user/user.service";
 import { CookieHelper } from "@/helper/cookie.helper";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Login() {
+  const { successLogin } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
@@ -69,7 +71,9 @@ export default function Login() {
         // Store token in cookie
         const token = response.data.token || response.data.data?.token;
         if (token) {
+
           CookieHelper.set({ key: "token", value: token });
+          successLogin(response.data,token);
           toast.success("Login successful!");
           router.push("/auth/profile");
         } else {
