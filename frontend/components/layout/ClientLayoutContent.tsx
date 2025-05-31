@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-
 interface User {
   id: string;
   email: string;
@@ -76,10 +75,10 @@ const PublicNavbar = () => {
           {/* Logo */}
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">999</span>
+              <div className="w-10 h-10  rounded-lg flex items-center justify-center">
+                <img className="text-white font-bold text-lg" src='../../logoImg.png'/>
               </div>
-               <a href="/" className="ml-3 text-xl font-bold text-gray-900">999Plus</a>
+              <span className="ml-3 text-xl font-bold text-gray-900">999Plus</span>
             </div>
           </div>
 
@@ -276,8 +275,8 @@ const PublicFooter = () => (
         {/* Logo & Description */}
         <div className="col-span-1 md:col-span-2">
           <div className="flex items-center mb-4">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">999</span>
+            <div className="w-10 h-10  rounded-lg flex items-center justify-center">
+                <img className="text-white font-bold text-lg" src='../../logoImg.png'/>
             </div>
             <span className="ml-3 text-xl font-bold">999Plus</span>
           </div>

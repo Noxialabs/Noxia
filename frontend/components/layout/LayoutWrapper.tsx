@@ -1,5 +1,6 @@
 // components/layout/LayoutWrapper.tsx (Server Component)
 import { AuthServerUtils } from '@/utils/auth.server';
+import NoSSR from './NoSSR';
 import ClientLayoutContent from './ClientLayoutContent';
 
 interface LayoutWrapperProps {
@@ -12,11 +13,13 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const isAuthenticated = AuthServerUtils.isAuthenticated();
 
   return (
-    <ClientLayoutContent 
-      initialUser={user} 
-      initialIsAuthenticated={isAuthenticated}
-    >
-      {children}
-    </ClientLayoutContent>
+    <NoSSR>
+      <ClientLayoutContent 
+        initialUser={user} 
+        initialIsAuthenticated={isAuthenticated}
+      >
+        {children}
+      </ClientLayoutContent>
+    </NoSSR>
   );
 }
