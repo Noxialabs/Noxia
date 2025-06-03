@@ -1,3 +1,5 @@
+// ===================================================
+// src/database/migrations/001_create_users_table.ts
 import { Pool } from 'pg';
 import { logger } from '../../utils/logger.utils';
 
@@ -20,6 +22,11 @@ export const up = async (pool: Pool): Promise<void> => {
         password_hash VARCHAR(255) NOT NULL,
         eth_address VARCHAR(42) UNIQUE,
         tier VARCHAR(20) DEFAULT 'Tier 1' CHECK (tier IN ('Tier 1', 'Tier 2', 'Tier 3', 'Tier 4')),
+        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'super_admin')), -- Added role field
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        phone VARCHAR(20),
+        organization VARCHAR(255),
         is_active BOOLEAN DEFAULT true,
         email_verified BOOLEAN DEFAULT false,
         email_verification_token VARCHAR(255),
@@ -38,10 +45,13 @@ export const up = async (pool: Pool): Promise<void> => {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_users_eth_address ON users(eth_address) WHERE eth_address IS NOT NULL;
       CREATE INDEX IF NOT EXISTS idx_users_tier ON users(tier);
+      CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
       CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
       CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
       CREATE INDEX IF NOT EXISTS idx_users_email_verification_token ON users(email_verification_token) WHERE email_verification_token IS NOT NULL;
       CREATE INDEX IF NOT EXISTS idx_users_password_reset_token ON users(password_reset_token) WHERE password_reset_token IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_users_last_login ON users(last_login);
+      CREATE INDEX IF NOT EXISTS idx_users_organization ON users(organization) WHERE organization IS NOT NULL;
     `);
 
     // Create updated_at trigger function
@@ -64,8 +74,31 @@ export const up = async (pool: Pool): Promise<void> => {
         EXECUTE FUNCTION update_updated_at_column();
     `);
 
+    // Insert default admin user (optional - remove if not needed)
+    await client.query(`
+      INSERT INTO users (
+        email, 
+        password_hash, 
+        role, 
+        tier,
+        first_name, 
+        last_name,
+        is_active,
+        email_verified
+      ) VALUES (
+        'admin@example.com',
+        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/ixjeBOKcS', -- 'password123'
+        'admin',
+        'Tier 4',
+        'System',
+        'Administrator',
+        true,
+        true
+      ) ON CONFLICT (email) DO NOTHING;
+    `);
+
     await client.query('COMMIT');
-    logger.info('✅ Migration 001: Users table created successfully');
+    logger.info('✅ Migration 001: Users table created successfully with admin role support');
 
   } catch (error) {
     await client.query('ROLLBACK');

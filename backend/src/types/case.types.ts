@@ -1,6 +1,7 @@
 export interface Case {
   id: string;
   caseRef: string;
+  title: string;
   userId: string;
   clientName: string;
   description: string;
@@ -21,28 +22,33 @@ export interface Case {
 }
 
 // Case status types
-export type CaseStatus = 'Pending' | 'In Progress' | 'Completed' | 'Escalated' | 'Closed';
+export type CaseStatus =
+  | "Pending"
+  | "In Progress"
+  | "Completed"
+  | "Escalated"
+  | "Closed";
 
 // Case priority types
-export type CasePriority = 'Low' | 'Normal' | 'High' | 'Critical';
+export type CasePriority = "Low" | "Normal" | "High" | "Critical";
 
 // Escalation level types
-export type EscalationLevel = 'Basic' | 'Priority' | 'Urgent';
+export type EscalationLevel = "Basic" | "Priority" | "Urgent";
 
 // Issue category types
-export type IssueCategory = 
-  | 'Corruption - Police'
-  | 'Corruption - Government'
-  | 'Corruption - Judicial'
-  | 'Criminal - Assault'
-  | 'Criminal - Fraud'
-  | 'Criminal - Harassment'
-  | 'Criminal - Murder'
-  | 'Legal - Civil Rights'
-  | 'Legal - Employment'
-  | 'Legal - Housing'
-  | 'Legal - Immigration'
-  | 'Other';
+export type IssueCategory =
+  | "Corruption - Police"
+  | "Corruption - Government"
+  | "Corruption - Judicial"
+  | "Criminal - Assault"
+  | "Criminal - Fraud"
+  | "Criminal - Harassment"
+  | "Criminal - Murder"
+  | "Legal - Civil Rights"
+  | "Legal - Employment"
+  | "Legal - Housing"
+  | "Legal - Immigration"
+  | "Other";
 
 // Case attachment interface
 export interface CaseAttachment {
@@ -57,6 +63,7 @@ export interface CaseAttachment {
 // Case submission request
 export interface CaseSubmissionRequest {
   clientName: string;
+  title: string;
   description: string;
   jurisdiction?: string;
   attachments?: Express.Multer.File[];
@@ -159,6 +166,6 @@ export interface CaseAssignment {
   assignedTo: string;
   assignedBy: string;
   assignedAt: Date;
-  status: 'Active' | 'Completed' | 'Transferred';
+  status: "Active" | "Completed" | "Transferred";
   notes?: string;
 }

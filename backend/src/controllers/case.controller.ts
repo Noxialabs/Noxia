@@ -1,13 +1,16 @@
-
-
 // src/controllers/case.controller.ts
-import { Request, Response } from 'express';
-import { CaseService } from '../services/case.service';
-import { AIService } from '../services/ai.service';
-import { asyncHandler } from '../middleware/error.middleware';
-import { APIResponse, PaginatedResponse, Case, CaseSubmissionRequest } from '../types';
-import { logger } from '../utils/logger.utils';
-import { v4 as uuidv4 } from 'uuid';
+import { Request, Response } from "express";
+import { CaseService } from "../services/case.service";
+import { AIService } from "../services/ai.service";
+import { asyncHandler } from "../middleware/error.middleware";
+import {
+  APIResponse,
+  PaginatedResponse,
+  Case,
+  CaseSubmissionRequest,
+} from "../types";
+import { logger } from "../utils/logger.utils";
+import { v4 as uuidv4 } from "uuid";
 
 export class CaseController {
   private caseService: CaseService;
@@ -20,16 +23,27 @@ export class CaseController {
 
   submitCase = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).userId;
-    const { clientName, description, jurisdiction, attachments }: CaseSubmissionRequest = req.body;
+    const {
+      clientName,
+      description,
+      jurisdiction,
+      title,
+    }: CaseSubmissionRequest = req.body;
 
+
+    const attachments = "[]";
     // Generate unique case reference
-    const caseRef = `999P-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+    const caseRef = `999P-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 4)
+      .toUpperCase()}`;
 
     // Get AI classification
     const classification = await this.aiService.classifyText(description);
 
     // Create case
     const newCase = await this.caseService.createCase({
+      title,
       caseRef,
       userId,
       clientName,
@@ -39,26 +53,26 @@ export class CaseController {
       escalationLevel: classification.escalationLevel,
       aiConfidence: classification.confidence,
       urgencyScore: classification.urgencyScore,
-      suggestedActions: classification.suggestedActions,
-      status: 'Pending',
+      suggestedActions: JSON.stringify(classification.suggestedActions),
+      status: "Pending",
       priority: this.determinePriority(classification.urgencyScore),
       attachments,
-      metadata: {
+      metadata: JSON.stringify({
         ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        submissionSource: 'web'
-      }
+        userAgent: req.get("User-Agent"),
+        submissionSource: "web",
+      }),
     });
 
     logger.info(`New case submitted: ${caseRef} by user ${userId}`);
 
     res.status(201).json({
       success: true,
-      message: 'Case submitted successfully',
+      message: "Case submitted successfully",
       data: {
         case: newCase,
-        classification
-      }
+        classification,
+      },
     } as APIResponse);
   });
 
@@ -72,10 +86,14 @@ export class CaseController {
     const filters = {
       userId,
       ...(status && { status }),
-      ...(priority && { priority })
+      ...(priority && { priority }),
     };
 
-    const { cases, total } = await this.caseService.getCases(filters, page, limit);
+    const { cases, total } = await this.caseService.getCases(
+      filters,
+      page,
+      limit
+    );
 
     res.json({
       success: true,
@@ -86,8 +104,8 @@ export class CaseController {
         total,
         totalPages: Math.ceil(total / limit),
         hasNext: page * limit < total,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     } as PaginatedResponse<Case>);
   });
 
@@ -96,17 +114,17 @@ export class CaseController {
     const caseId = req.params.id;
 
     const caseData = await this.caseService.getCaseById(caseId, userId);
-    
+
     if (!caseData) {
       return res.status(404).json({
         success: false,
-        message: 'Case not found'
+        message: "Case not found",
       } as APIResponse);
     }
 
     res.json({
       success: true,
-      data: caseData
+      data: caseData,
     } as APIResponse);
   });
 
@@ -120,21 +138,21 @@ export class CaseController {
     if (!existingCase) {
       return res.status(404).json({
         success: false,
-        message: 'Case not found'
+        message: "Case not found",
       } as APIResponse);
     }
 
     const updatedCase = await this.caseService.updateCase(caseId, {
       ...updates,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     });
 
     logger.info(`Case updated: ${existingCase.caseRef} by user ${userId}`);
 
     res.json({
       success: true,
-      message: 'Case updated successfully',
-      data: updatedCase
+      message: "Case updated successfully",
+      data: updatedCase,
     } as APIResponse);
   });
 
@@ -147,7 +165,7 @@ export class CaseController {
     if (!existingCase) {
       return res.status(404).json({
         success: false,
-        message: 'Case not found'
+        message: "Case not found",
       } as APIResponse);
     }
 
@@ -157,7 +175,7 @@ export class CaseController {
 
     res.json({
       success: true,
-      message: 'Case deleted successfully'
+      message: "Case deleted successfully",
     } as APIResponse);
   });
 
@@ -168,7 +186,7 @@ export class CaseController {
 
     res.json({
       success: true,
-      data: stats
+      data: stats,
     } as APIResponse);
   });
 
@@ -179,25 +197,27 @@ export class CaseController {
 
     const escalatedCase = await this.caseService.escalateCase(caseId, userId, {
       reason,
-      priority: priority || 'High',
+      priority: priority || "High",
       escalatedBy: userId,
-      escalatedAt: new Date()
+      escalatedAt: new Date(),
     });
 
     logger.info(`Case escalated: ${escalatedCase.caseRef} by user ${userId}`);
 
     res.json({
       success: true,
-      message: 'Case escalated successfully',
-      data: escalatedCase
+      message: "Case escalated successfully",
+      data: escalatedCase,
     } as APIResponse);
   });
 
-  private determinePriority(urgencyScore: number): 'Low' | 'Normal' | 'High' | 'Critical' {
-    if (urgencyScore >= 9) return 'Critical';
-    if (urgencyScore >= 7) return 'High';
-    if (urgencyScore >= 4) return 'Normal';
-    return 'Low';
+  private determinePriority(
+    urgencyScore: number
+  ): "Low" | "Normal" | "High" | "Critical" {
+    if (urgencyScore >= 9) return "Critical";
+    if (urgencyScore >= 7) return "High";
+    if (urgencyScore >= 4) return "Normal";
+    return "Low";
   }
 }
 

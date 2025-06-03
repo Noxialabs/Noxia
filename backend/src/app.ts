@@ -6,6 +6,7 @@ import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 dotenv.config();
+import { setupSwagger } from "./middleware/swagger.middleware";
 import path from "path";
 
 // Import routes
@@ -20,6 +21,9 @@ import { logger } from "./utils/logger.utils";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+setupSwagger(app);
+
 
 // Security middleware
 app.use(
@@ -37,7 +41,7 @@ app.use(
 );
 
 // CORS configuration
-console.log("CORS ",process.env.CORS_ORIGIN?.split(","));
+console.log("CORS ", process.env.CORS_ORIGIN?.split(","));
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN?.split(",") || ["http://localhost:3002"],

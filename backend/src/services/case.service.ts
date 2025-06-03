@@ -1,10 +1,11 @@
-import { query } from '../database/connection';
-import { Case } from '../types';
-import { logger } from '../utils/logger.utils';
-import { v4 as uuidv4 } from 'uuid';
+import { query } from "../database/connection";
+import { Case } from "../types";
+import { logger } from "../utils/logger.utils";
+import { v4 as uuidv4 } from "uuid";
 
 export class CaseService {
   async createCase(caseData: {
+    title: string;
     caseRef: string;
     userId: string;
     clientName: string;
@@ -14,7 +15,7 @@ export class CaseService {
     escalationLevel: string;
     aiConfidence: number;
     urgencyScore: number;
-    suggestedActions?: string[];
+    suggestedActions?: string[] | string;
     status?: string;
     priority?: string;
     attachments?: any;
@@ -25,16 +26,17 @@ export class CaseService {
 
     const result = await query(
       `INSERT INTO cases (
-        id, case_ref, user_id, client_name, description, jurisdiction,
+        id, title, case_ref, user_id, client_name, description, jurisdiction,
         issue_category, escalation_level, ai_confidence, urgency_score,
         suggested_actions, status, priority, attachments, metadata,
         submission_date, last_updated
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,$18)
       RETURNING *`,
       [
         id,
+        caseData.title,
         caseData.caseRef,
-        caseData.userId,
+        caseData.userId ?? null,
         caseData.clientName,
         caseData.description,
         caseData.jurisdiction || null,
@@ -43,12 +45,12 @@ export class CaseService {
         caseData.aiConfidence,
         caseData.urgencyScore,
         JSON.stringify(caseData.suggestedActions || []),
-        caseData.status || 'Pending',
-        caseData.priority || 'Normal',
+        caseData.status || "Pending",
+        caseData.priority || "Normal",
         JSON.stringify(caseData.attachments || {}),
         JSON.stringify(caseData.metadata || {}),
         now,
-        now
+        now,
       ]
     );
 
@@ -67,7 +69,7 @@ export class CaseService {
     limit: number = 10
   ): Promise<{ cases: Case[]; total: number }> {
     const offset = (page - 1) * limit;
-    let whereClause = 'WHERE user_id = $1';
+    let whereClause = "WHERE user_id = $1";
     const values: any[] = [filters.userId];
     let paramIndex = 2;
 
@@ -104,14 +106,14 @@ export class CaseService {
     );
 
     return {
-      cases: casesResult.rows.map(row => this.mapDatabaseCase(row)),
-      total: parseInt(countResult.rows[0].count)
+      cases: casesResult.rows.map((row) => this.mapDatabaseCase(row)),
+      total: parseInt(countResult.rows[0].count),
     };
   }
 
   async getCaseById(id: string, userId: string): Promise<Case | null> {
     const result = await query(
-      'SELECT * FROM cases WHERE id = $1 AND user_id = $2',
+      "SELECT * FROM cases WHERE id = $1 AND user_id = $2",
       [id, userId]
     );
 
@@ -126,7 +128,11 @@ export class CaseService {
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
         const dbField = this.camelToSnake(key);
-        if (dbField === 'suggested_actions' || dbField === 'attachments' || dbField === 'metadata') {
+        if (
+          dbField === "suggested_actions" ||
+          dbField === "attachments" ||
+          dbField === "metadata"
+        ) {
           setClause.push(`${dbField} = $${paramIndex}`);
           values.push(JSON.stringify(value));
         } else {
@@ -142,12 +148,14 @@ export class CaseService {
     values.push(id);
 
     const result = await query(
-      `UPDATE cases SET ${setClause.join(', ')} WHERE id = $${paramIndex + 1} RETURNING *`,
+      `UPDATE cases SET ${setClause.join(", ")} WHERE id = $${
+        paramIndex + 1
+      } RETURNING *`,
       values
     );
 
     if (result.rows.length === 0) {
-      throw new Error('Case not found');
+      throw new Error("Case not found");
     }
 
     logger.info(`Case updated: ${id}`);
@@ -155,12 +163,13 @@ export class CaseService {
   }
 
   async deleteCase(id: string): Promise<void> {
-    await query('DELETE FROM cases WHERE id = $1', [id]);
+    await query("DELETE FROM cases WHERE id = $1", [id]);
     logger.info(`Case deleted: ${id}`);
   }
 
   async getCaseStats(userId: string): Promise<any> {
-    const result = await query(`
+    const result = await query(
+      `
       SELECT 
         COUNT(*) as total_cases,
         COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_cases,
@@ -173,7 +182,9 @@ export class CaseService {
         AVG(urgency_score) as avg_urgency
       FROM cases 
       WHERE user_id = $1
-    `, [userId]);
+    `,
+      [userId]
+    );
 
     return result.rows[0];
   }
@@ -198,15 +209,15 @@ export class CaseService {
         escalationData.priority,
         new Date(),
         JSON.stringify({
-          escalation: escalationData
+          escalation: escalationData,
         }),
         id,
-        userId
+        userId,
       ]
     );
 
     if (result.rows.length === 0) {
-      throw new Error('Case not found');
+      throw new Error("Case not found");
     }
 
     return this.mapDatabaseCase(result.rows[0]);
@@ -214,11 +225,11 @@ export class CaseService {
 
   async getCasesByStatus(status: string, limit: number = 50): Promise<Case[]> {
     const result = await query(
-      'SELECT * FROM cases WHERE status = $1 ORDER BY submission_date DESC LIMIT $2',
+      "SELECT * FROM cases WHERE status = $1 ORDER BY submission_date DESC LIMIT $2",
       [status, limit]
     );
 
-    return result.rows.map(row => this.mapDatabaseCase(row));
+    return result.rows.map((row) => this.mapDatabaseCase(row));
   }
 
   async searchCases(
@@ -229,7 +240,8 @@ export class CaseService {
   ): Promise<{ cases: Case[]; total: number }> {
     const offset = (page - 1) * limit;
 
-    const countResult = await query(`
+    const countResult = await query(
+      `
       SELECT COUNT(*) FROM cases 
       WHERE user_id = $1 AND (
         description ILIKE $2 OR 
@@ -237,9 +249,12 @@ export class CaseService {
         case_ref ILIKE $2 OR
         issue_category ILIKE $2
       )
-    `, [userId, `%${searchTerm}%`]);
+    `,
+      [userId, `%${searchTerm}%`]
+    );
 
-    const casesResult = await query(`
+    const casesResult = await query(
+      `
       SELECT * FROM cases 
       WHERE user_id = $1 AND (
         description ILIKE $2 OR 
@@ -249,11 +264,13 @@ export class CaseService {
       )
       ORDER BY submission_date DESC 
       LIMIT $3 OFFSET $4
-    `, [userId, `%${searchTerm}%`, limit, offset]);
+    `,
+      [userId, `%${searchTerm}%`, limit, offset]
+    );
 
     return {
-      cases: casesResult.rows.map(row => this.mapDatabaseCase(row)),
-      total: parseInt(countResult.rows[0].count)
+      cases: casesResult.rows.map((row) => this.mapDatabaseCase(row)),
+      total: parseInt(countResult.rows[0].count),
     };
   }
 
@@ -261,6 +278,7 @@ export class CaseService {
     return {
       id: dbCase.id,
       caseRef: dbCase.case_ref,
+      title: dbCase.title,
       userId: dbCase.user_id,
       clientName: dbCase.client_name,
       description: dbCase.description,
@@ -277,11 +295,13 @@ export class CaseService {
       lastUpdated: dbCase.last_updated,
       attachments: dbCase.attachments ? JSON.parse(dbCase.attachments) : null,
       metadata: dbCase.metadata ? JSON.parse(dbCase.metadata) : null,
-      suggestedActions: dbCase.suggested_actions ? JSON.parse(dbCase.suggested_actions) : []
+      suggestedActions: dbCase.suggested_actions
+        ? JSON.parse(dbCase.suggested_actions)
+        : [],
     };
   }
 
   private camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 }

@@ -77,12 +77,13 @@ ${context ? `Additional Context: ${JSON.stringify(context)}` : ""}
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-4",
+        model: process.env.OPENAI_MODEL || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || "0.2"),
-        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || "1000"),
+        //  temperature: parseFloat(process.env.OPENAI_TEMPERATURE || "0.2"),
+        // max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || "1000"),
       });
 
+      console.log("Response: ", response);
       const rawResponse = response.choices[0]?.message?.content;
       if (!rawResponse) {
         throw new Error("No response from OpenAI");
