@@ -8,7 +8,6 @@ export class AIService {
   private openai: OpenAI;
 
   constructor() {
-    console.log("API KEY: ", process.env.OPENAI_API_KEY);
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY!,
     });

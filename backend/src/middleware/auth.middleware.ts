@@ -1,9 +1,9 @@
 // src/middleware/auth.middleware.ts
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { UserModel } from '../models/User.model';
-import { APIResponse, User } from '../types';
-import { logger } from '../utils/logger.utils';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import { UserModel } from "../models/User.model";
+import { APIResponse, User } from "../types";
+import { logger } from "../utils/logger.utils";
 
 // Extend Request interface to include user data
 declare global {
@@ -22,16 +22,17 @@ export const authMiddleware = async (
 ): Promise<void> => {
   try {
     // Get token from header
-    const authHeader = req.header('Authorization');
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : null;
+    const authHeader = req.header("Authorization");
+    const token =
+      authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.substring(7)
+        : null;
 
     if (!token) {
       res.status(401).json({
         success: false,
-        message: 'Access denied. No token provided.',
-        error: 'MISSING_TOKEN'
+        message: "Access denied. No token provided.",
+        error: "MISSING_TOKEN",
       } as APIResponse);
       return;
     }
@@ -41,18 +42,18 @@ export const authMiddleware = async (
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET!);
     } catch (jwtError: any) {
-      if (jwtError.name === 'TokenExpiredError') {
+      if (jwtError.name === "TokenExpiredError") {
         res.status(401).json({
           success: false,
-          message: 'Token has expired. Please login again.',
-          error: 'TOKEN_EXPIRED'
+          message: "Token has expired. Please login again.",
+          error: "TOKEN_EXPIRED",
         } as APIResponse);
         return;
-      } else if (jwtError.name === 'JsonWebTokenError') {
+      } else if (jwtError.name === "JsonWebTokenError") {
         res.status(401).json({
           success: false,
-          message: 'Invalid token. Please login again.',
-          error: 'INVALID_TOKEN'
+          message: "Invalid token. Please login again.",
+          error: "INVALID_TOKEN",
         } as APIResponse);
         return;
       } else {
@@ -65,8 +66,8 @@ export const authMiddleware = async (
     if (!user) {
       res.status(401).json({
         success: false,
-        message: 'Token is valid but user no longer exists.',
-        error: 'USER_NOT_FOUND'
+        message: "Token is valid but user no longer exists.",
+        error: "USER_NOT_FOUND",
       } as APIResponse);
       return;
     }
@@ -75,8 +76,8 @@ export const authMiddleware = async (
     if (!user.isActive) {
       res.status(401).json({
         success: false,
-        message: 'Your account has been deactivated. Please contact support.',
-        error: 'ACCOUNT_DEACTIVATED'
+        message: "Your account has been deactivated. Please contact support.",
+        error: "ACCOUNT_DEACTIVATED",
       } as APIResponse);
       return;
     }
@@ -90,11 +91,11 @@ export const authMiddleware = async (
 
     next();
   } catch (error) {
-    logger.error('Authentication middleware error:', error);
+    logger.error("Authentication middleware error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during authentication.',
-      error: 'AUTH_ERROR'
+      message: "Internal server error during authentication.",
+      error: "AUTH_ERROR",
     } as APIResponse);
   }
 };
@@ -106,29 +107,30 @@ export const optionalAuthMiddleware = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.header('Authorization');
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : null;
+    const authHeader = req.header("Authorization");
+    const token =
+      authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.substring(7)
+        : null;
 
     if (token) {
       try {
         const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
         const user = await UserModel.findById(decoded.userId);
-        
+
         if (user && user.isActive) {
           req.userId = user.id;
           req.user = user;
         }
       } catch (error) {
         // Silently fail for optional auth
-        logger.debug('Optional auth failed:', error);
+        logger.debug("Optional auth failed:", error);
       }
     }
 
     next();
   } catch (error) {
-    logger.error('Optional auth middleware error:', error);
+    logger.error("Optional auth middleware error:", error);
     next(); // Continue without auth for optional middleware
   }
 };
@@ -143,29 +145,41 @@ export const adminMiddleware = async (
     if (!req.user) {
       res.status(401).json({
         success: false,
-        message: 'Authentication required for admin access.',
-        error: 'AUTH_REQUIRED'
+        message: "Authentication required for admin access.",
+        error: "AUTH_REQUIRED",
       } as APIResponse);
       return;
     }
 
-    // Check if user has admin privileges (Tier 4 or specific admin flag)
-    if (req.user.tier !== 'Tier 4') {
+    if (req.user.role !== "admin") {
+      logger.warn(
+        `Admin access denied for user: ${req.user.email} (role: ${req.user.role})`
+      );
       res.status(403).json({
         success: false,
-        message: 'Admin privileges required. Upgrade to Tier 4 for admin access.',
-        error: 'INSUFFICIENT_PRIVILEGES'
+        message: "Access denied. Admin privileges required.",
+        error: "INSUFFICIENT_PRIVILEGES",
       } as APIResponse);
+      return;
+    }
+
+    if (!req.user.isActive) {
+      logger.warn(`Admin access denied for inactive user: ${req.user.email}`);
+      res.status(403).json({
+        success: false,
+        message: "Access denied. Account is not active.",
+        code: "ACCOUNT_INACTIVE",
+      });
       return;
     }
 
     next();
   } catch (error) {
-    logger.error('Admin middleware error:', error);
+    logger.error("Admin middleware error:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during admin check.',
-      error: 'ADMIN_CHECK_ERROR'
+      message: "Internal server error during admin check.",
+      error: "ADMIN_CHECK_ERROR",
     } as APIResponse);
   }
 };

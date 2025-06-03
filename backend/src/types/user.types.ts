@@ -7,10 +7,11 @@ export interface User {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  role: "admin" | "user";
 }
 
 // User tier levels
-export type UserTierLevel = 'Tier 1' | 'Tier 2' | 'Tier 3' | 'Tier 4';
+export type UserTierLevel = "Tier 1" | "Tier 2" | "Tier 3" | "Tier 4";
 
 // User tier information with ETH balance
 export interface UserTier {
@@ -49,7 +50,7 @@ export interface UserPasswordChangeRequest {
 
 // User authentication response
 export interface UserAuthResponse {
-  user: Omit<User, 'passwordHash'>;
+  user: Omit<User, "passwordHash">;
   token: string;
   refreshToken?: string;
   expiresIn: string;
@@ -127,4 +128,56 @@ export interface UserSearchFilters {
   isActive?: boolean;
   dateFrom?: string;
   dateTo?: string;
+}
+
+export interface UserUpdateRequest {
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  organization?: string;
+  eth_address?: string;
+  tier?: "Tier 1" | "Tier 2" | "Tier 3" | "Tier 4";
+  role?: "user" | "admin";
+  is_active?: boolean;
+}
+
+export interface UserSearchFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: "user" | "admin";
+  tier?: "Tier 1" | "Tier 2" | "Tier 3" | "Tier 4";
+  is_active?: boolean;
+  created_from?: string;
+  created_to?: string;
+}
+
+export interface UserResponse {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  organization?: string;
+  eth_address?: string;
+  tier: string;
+  role: string;
+  is_active: boolean;
+  email_verified: boolean;
+  last_login?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PaginatedUsersResponse {
+  users: UserResponse[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
 }

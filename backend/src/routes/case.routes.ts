@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { CaseController } from "../controllers/case.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import {
+  adminMiddleware,
+  authMiddleware,
+  optionalAuthMiddleware,
+} from "../middleware/auth.middleware";
 import { validationMiddleware } from "../middleware/validation.middleware";
 import { tierCheckMiddleware } from "../middleware/tier-check.middleware";
 import Joi from "joi";
@@ -230,6 +234,7 @@ const getCasesSchema = Joi.object({
  */
 router.post(
   "/",
+  optionalAuthMiddleware,
   validationMiddleware(submitCaseSchema),
   //tierCheckMiddleware(['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4']), // All tiers can submit cases
   caseController.submitCase
@@ -332,6 +337,8 @@ router.post(
  */
 router.get(
   "/",
+  authMiddleware,
+  adminMiddleware,
   validationMiddleware(getCasesSchema, "query"),
   caseController.getCases
 );
@@ -431,7 +438,7 @@ router.get("/stats", caseController.getCaseStats);
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:id", caseController.getCaseById);
+router.get("/:id", authMiddleware, adminMiddleware, caseController.getCaseById);
 
 /**
  * @swagger

@@ -1,7 +1,7 @@
-import { query } from '../database/connection';
-import { User } from '../types';
-import { logger } from '../utils/logger.utils';
-import { v4 as uuidv4 } from 'uuid';
+import { query } from "../database/connection";
+import { User } from "../types";
+import { logger } from "../utils/logger.utils";
+import { v4 as uuidv4 } from "uuid";
 
 export class AuthService {
   async createUser(userData: {
@@ -23,10 +23,10 @@ export class AuthService {
         userData.email,
         userData.passwordHash,
         userData.ethAddress || null,
-        userData.tier || 'Tier 1',
+        userData.tier || "Tier 1",
         userData.isActive !== false,
         now,
-        now
+        now,
       ]
     );
 
@@ -36,7 +36,7 @@ export class AuthService {
 
   async findUserByEmail(email: string): Promise<User | null> {
     const result = await query(
-      'SELECT * FROM users WHERE email = $1 AND is_active = true',
+      "SELECT * FROM users WHERE email = $1 AND is_active = true",
       [email]
     );
 
@@ -45,7 +45,7 @@ export class AuthService {
 
   async findUserById(id: string): Promise<User | null> {
     const result = await query(
-      'SELECT * FROM users WHERE id = $1 AND is_active = true',
+      "SELECT * FROM users WHERE id = $1 AND is_active = true",
       [id]
     );
 
@@ -73,12 +73,14 @@ export class AuthService {
     values.push(id); // for WHERE clause
 
     const result = await query(
-      `UPDATE users SET ${setClause.join(', ')} WHERE id = $${paramIndex + 1} RETURNING *`,
+      `UPDATE users SET ${setClause.join(", ")} WHERE id = $${
+        paramIndex + 1
+      } RETURNING *`,
       values
     );
 
     if (result.rows.length === 0) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     logger.info(`User updated: ${id}`);
@@ -86,15 +88,15 @@ export class AuthService {
   }
 
   async updateLastLogin(id: string): Promise<void> {
-    await query(
-      'UPDATE users SET updated_at = $1 WHERE id = $2',
-      [new Date(), id]
-    );
+    await query("UPDATE users SET updated_at = $1 WHERE id = $2", [
+      new Date(),
+      id,
+    ]);
   }
 
   async deactivateUser(id: string): Promise<void> {
     await query(
-      'UPDATE users SET is_active = false, updated_at = $1 WHERE id = $2',
+      "UPDATE users SET is_active = false, updated_at = $1 WHERE id = $2",
       [new Date(), id]
     );
     logger.info(`User deactivated: ${id}`);
@@ -125,11 +127,12 @@ export class AuthService {
       tier: dbUser.tier,
       isActive: dbUser.is_active,
       createdAt: dbUser.created_at,
-      updatedAt: dbUser.updated_at
+      updatedAt: dbUser.updated_at,
+      role: dbUser.role,
     };
   }
 
   private camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 }

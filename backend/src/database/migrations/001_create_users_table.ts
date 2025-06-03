@@ -22,7 +22,7 @@ export const up = async (pool: Pool): Promise<void> => {
         password_hash VARCHAR(255) NOT NULL,
         eth_address VARCHAR(42) UNIQUE,
         tier VARCHAR(20) DEFAULT 'Tier 1' CHECK (tier IN ('Tier 1', 'Tier 2', 'Tier 3', 'Tier 4')),
-        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'super_admin')), -- Added role field
+        role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin')), -- Added role field
         first_name VARCHAR(100),
         last_name VARCHAR(100),
         phone VARCHAR(20),

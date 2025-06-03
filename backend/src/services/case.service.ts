@@ -112,10 +112,9 @@ export class CaseService {
   }
 
   async getCaseById(id: string, userId: string): Promise<Case | null> {
-    const result = await query(
-      "SELECT * FROM cases WHERE id = $1 AND user_id = $2",
-      [id, userId]
-    );
+    const result = await query("SELECT * FROM cases WHERE id = $1", [
+      id,
+    ]);
 
     return result.rows.length > 0 ? this.mapDatabaseCase(result.rows[0]) : null;
   }

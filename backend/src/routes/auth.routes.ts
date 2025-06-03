@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { adminMiddleware, authMiddleware } from '../middleware/auth.middleware';
 import { validationMiddleware } from '../middleware/validation.middleware';
 import { rateLimitMiddleware } from '../middleware/rate-limit.middleware';
 import Joi from 'joi';
@@ -69,13 +69,9 @@ router.put('/change-password',
   authController.changePassword
 );
 
-// Admin routes (if needed)
 router.get('/users',
   authMiddleware,
-  // Add admin middleware here
-  async (req, res) => {
-    res.json({ message: 'Admin users endpoint - implement admin check' });
-  }
+  adminMiddleware,
 );
 
 export default router;

@@ -192,7 +192,8 @@ export class UserModel {
       tier: row.tier,
       isActive: row.is_active,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
+      role: row.role
     };
   }
 

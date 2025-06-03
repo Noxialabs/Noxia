@@ -2,6 +2,7 @@
 // src/routes/index.ts
 import { Router } from 'express';
 import authRoutes from './auth.routes';
+import userRoutes from './user.routes';
 import caseRoutes from './case.routes';
 import aiRoutes from './ai.routes';
 import blockchainRoutes from './blockchain.routes';
@@ -162,6 +163,7 @@ router.get('/stats', (req, res) => {
 
 // Mount all route modules
 router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
 router.use('/cases', caseRoutes);
 router.use('/ai', aiRoutes);
 router.use('/blockchain', blockchainRoutes);
