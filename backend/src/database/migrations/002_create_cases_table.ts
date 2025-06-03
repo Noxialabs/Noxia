@@ -1,13 +1,13 @@
 // ===================================================
 // src/database/migrations/002_create_cases_table.ts
-import { Pool } from 'pg';
-import { logger } from '../../utils/logger.utils';
+import { Pool } from "pg";
+import { logger } from "../../utils/logger.utils";
 
 export const up = async (pool: Pool): Promise<void> => {
   const client = await pool.connect();
-  
+
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     // Create cases table
     await client.query(`
@@ -44,13 +44,14 @@ export const up = async (pool: Pool): Promise<void> => {
         eth_tx_hash VARCHAR(100),
         ce_file_status VARCHAR(50) DEFAULT 'Pending',
         submission_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         attachments JSONB DEFAULT '[]',
         metadata JSONB DEFAULT '{}',
         suggested_actions JSONB DEFAULT '[]',
         assigned_to UUID REFERENCES users(id),
         escalated_by UUID REFERENCES users(id),
         escalated_at TIMESTAMP,
+         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         closed_at TIMESTAMP,
         closed_by UUID REFERENCES users(id),
         closure_reason TEXT,
@@ -58,6 +59,7 @@ export const up = async (pool: Pool): Promise<void> => {
         is_public_submission BOOLEAN DEFAULT false,
         submission_ip INET, -- Track IP for public submissions
         submission_user_agent TEXT -- Track user agent for public submissions
+      
       );
     `);
 
@@ -256,12 +258,13 @@ export const up = async (pool: Pool): Promise<void> => {
       $$ language 'plpgsql';
     `);
 
-    await client.query('COMMIT');
-    logger.info('✅ Migration 002: Cases tables created successfully with public user support');
-
+    await client.query("COMMIT");
+    logger.info(
+      "✅ Migration 002: Cases tables created successfully with public user support"
+    );
   } catch (error) {
-    await client.query('ROLLBACK');
-    logger.error('❌ Migration 002 failed:', error);
+    await client.query("ROLLBACK");
+    logger.error("❌ Migration 002 failed:", error);
     throw error;
   } finally {
     client.release();
@@ -270,28 +273,33 @@ export const up = async (pool: Pool): Promise<void> => {
 
 export const down = async (pool: Pool): Promise<void> => {
   const client = await pool.connect();
-  
+
   try {
-    await client.query('BEGIN');
-    
-    await client.query('DROP TRIGGER IF EXISTS log_case_insert_activity ON cases;');
-    await client.query('DROP TRIGGER IF EXISTS log_case_update_activity ON cases;');
-    await client.query('DROP TRIGGER IF EXISTS update_cases_updated_at ON cases;');
-    await client.query('DROP FUNCTION IF EXISTS generate_case_ref();');
-    await client.query('DROP FUNCTION IF EXISTS cleanup_expired_sessions();');
-    await client.query('DROP FUNCTION IF EXISTS log_case_activity();');
-    await client.query('DROP TABLE IF EXISTS user_sessions CASCADE;');
-    await client.query('DROP TABLE IF EXISTS case_exports CASCADE;');
-    await client.query('DROP TABLE IF EXISTS case_activities CASCADE;');
-    await client.query('DROP TABLE IF EXISTS ai_classifications CASCADE;');
-    await client.query('DROP TABLE IF EXISTS cases CASCADE;');
-    
-    await client.query('COMMIT');
-    logger.info('✅ Migration 002: Cases tables dropped successfully');
-    
+    await client.query("BEGIN");
+
+    await client.query(
+      "DROP TRIGGER IF EXISTS log_case_insert_activity ON cases;"
+    );
+    await client.query(
+      "DROP TRIGGER IF EXISTS log_case_update_activity ON cases;"
+    );
+    await client.query(
+      "DROP TRIGGER IF EXISTS update_cases_updated_at ON cases;"
+    );
+    await client.query("DROP FUNCTION IF EXISTS generate_case_ref();");
+    await client.query("DROP FUNCTION IF EXISTS cleanup_expired_sessions();");
+    await client.query("DROP FUNCTION IF EXISTS log_case_activity();");
+    await client.query("DROP TABLE IF EXISTS user_sessions CASCADE;");
+    await client.query("DROP TABLE IF EXISTS case_exports CASCADE;");
+    await client.query("DROP TABLE IF EXISTS case_activities CASCADE;");
+    await client.query("DROP TABLE IF EXISTS ai_classifications CASCADE;");
+    await client.query("DROP TABLE IF EXISTS cases CASCADE;");
+
+    await client.query("COMMIT");
+    logger.info("✅ Migration 002: Cases tables dropped successfully");
   } catch (error) {
-    await client.query('ROLLBACK');
-    logger.error('❌ Migration 002 rollback failed:', error);
+    await client.query("ROLLBACK");
+    logger.error("❌ Migration 002 rollback failed:", error);
     throw error;
   } finally {
     client.release();

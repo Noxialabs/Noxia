@@ -30,7 +30,6 @@ export class CaseController {
       title,
     }: CaseSubmissionRequest = req.body;
 
-
     const attachments = "[]";
     // Generate unique case reference
     const caseRef = `999P-${Date.now()}-${Math.random()
@@ -77,7 +76,7 @@ export class CaseController {
   });
 
   getCases = asyncHandler(async (req: Request, res: Response) => {
-    const userId = (req as any).userId;
+    const userId = req.query.userId?.toString(); //(req as any).userId;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
@@ -144,7 +143,7 @@ export class CaseController {
 
     const updatedCase = await this.caseService.updateCase(caseId, {
       ...updates,
-      lastUpdated: new Date(),
+      updatedAt: new Date(),
     });
 
     logger.info(`Case updated: ${existingCase.caseRef} by user ${userId}`);

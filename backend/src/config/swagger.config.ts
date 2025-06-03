@@ -205,7 +205,7 @@ const swaggerDefinition: SwaggerDefinition = {
             format: 'date-time',
             description: 'Case submission timestamp',
           },
-          last_updated: {
+          updated_at: {
             type: 'string',
             format: 'date-time',
             description: 'Last update timestamp',

@@ -167,7 +167,7 @@ ${context ? `Additional Context: ${JSON.stringify(context)}` : ""}
     const result = await query(
       `UPDATE cases 
        SET issue_category = $1, escalation_level = $2, ai_confidence = $3,
-           urgency_score = $4, suggested_actions = $5, last_updated = $6
+           urgency_score = $4, suggested_actions = $5, updated_at = $6
        WHERE id = $7 
        RETURNING *`,
       [

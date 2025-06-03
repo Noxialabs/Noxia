@@ -389,7 +389,12 @@ router.get(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/stats", caseController.getCaseStats);
+router.get(
+  "/stats",
+  authMiddleware,
+  adminMiddleware,
+  caseController.getCaseStats
+);
 
 /**
  * @swagger
@@ -507,6 +512,8 @@ router.get("/:id", authMiddleware, adminMiddleware, caseController.getCaseById);
  */
 router.put(
   "/:id",
+  authMiddleware,
+  adminMiddleware,
   validationMiddleware(updateCaseSchema),
   caseController.updateCase
 );
@@ -566,7 +573,9 @@ router.put(
  */
 router.delete(
   "/:id",
-  tierCheckMiddleware(["Tier 3", "Tier 4"]), // Higher tiers can delete cases
+  authMiddleware,
+  adminMiddleware,
+  //tierCheckMiddleware(["Tier 3", "Tier 4"]), // Higher tiers can delete cases
   caseController.deleteCase
 );
 

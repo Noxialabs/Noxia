@@ -197,5 +197,5 @@ export interface NetworkStatus {
   gasPrice: string;
   avgBlockTime: number;
   congestion: 'low' | 'medium' | 'high';
-  lastUpdated: Date;
+  updatedAt: Date;
 }

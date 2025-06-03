@@ -15,7 +15,8 @@ export interface Case {
   ethTxHash?: string;
   ceFileStatus: string;
   submissionDate: Date;
-  lastUpdated: Date;
+  createdAt: Date;
+  updatedAt: Date;
   attachments?: CaseAttachment[];
   metadata?: Record<string, any>;
   suggestedActions?: string[];

@@ -29,7 +29,7 @@ export class CaseService {
         id, title, case_ref, user_id, client_name, description, jurisdiction,
         issue_category, escalation_level, ai_confidence, urgency_score,
         suggested_actions, status, priority, attachments, metadata,
-        submission_date, last_updated
+        submission_date, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,$18)
       RETURNING *`,
       [
@@ -60,7 +60,7 @@ export class CaseService {
 
   async getCases(
     filters: {
-      userId: string;
+      userId?: string; // Made optional
       status?: string;
       priority?: string;
       escalationLevel?: string;
@@ -69,26 +69,44 @@ export class CaseService {
     limit: number = 10
   ): Promise<{ cases: Case[]; total: number }> {
     const offset = (page - 1) * limit;
-    let whereClause = "WHERE user_id = $1";
-    const values: any[] = [filters.userId];
-    let paramIndex = 2;
+    let whereClause = "";
+    const values: any[] = [];
+    let paramIndex = 1;
+    let hasWhere = false;
+
+    // Apply userId filter only if userId has a value
+    if (filters.userId) {
+      whereClause += "WHERE user_id = $1";
+      values.push(filters.userId);
+      paramIndex++;
+      hasWhere = true;
+    }
 
     if (filters.status) {
-      whereClause += ` AND status = $${paramIndex}`;
+      whereClause += hasWhere
+        ? ` AND status = $${paramIndex}`
+        : `WHERE status = $${paramIndex}`;
       values.push(filters.status);
       paramIndex++;
+      hasWhere = true;
     }
 
     if (filters.priority) {
-      whereClause += ` AND priority = $${paramIndex}`;
+      whereClause += hasWhere
+        ? ` AND priority = $${paramIndex}`
+        : `WHERE priority = $${paramIndex}`;
       values.push(filters.priority);
       paramIndex++;
+      hasWhere = true;
     }
 
     if (filters.escalationLevel) {
-      whereClause += ` AND escalation_level = $${paramIndex}`;
+      whereClause += hasWhere
+        ? ` AND escalation_level = $${paramIndex}`
+        : `WHERE escalation_level = $${paramIndex}`;
       values.push(filters.escalationLevel);
       paramIndex++;
+      hasWhere = true;
     }
 
     // Get total count
@@ -100,8 +118,8 @@ export class CaseService {
     // Get cases with pagination
     const casesResult = await query(
       `SELECT * FROM cases ${whereClause} 
-       ORDER BY submission_date DESC 
-       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+     ORDER BY submission_date DESC 
+     LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
       [...values, limit, offset]
     );
 
@@ -112,9 +130,7 @@ export class CaseService {
   }
 
   async getCaseById(id: string, userId: string): Promise<Case | null> {
-    const result = await query("SELECT * FROM cases WHERE id = $1", [
-      id,
-    ]);
+    const result = await query("SELECT * FROM cases WHERE id = $1", [id]);
 
     return result.rows.length > 0 ? this.mapDatabaseCase(result.rows[0]) : null;
   }
@@ -127,29 +143,56 @@ export class CaseService {
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {
         const dbField = this.camelToSnake(key);
+
         if (
           dbField === "suggested_actions" ||
           dbField === "attachments" ||
           dbField === "metadata"
         ) {
-          setClause.push(`${dbField} = $${paramIndex}`);
-          values.push(JSON.stringify(value));
+          // Handle JSON fields - convert null to explicit NULL
+          if (value === null) {
+            setClause.push(`${dbField} = $${paramIndex}::jsonb`);
+            values.push(null);
+          } else {
+            setClause.push(`${dbField} = $${paramIndex}::jsonb`);
+            values.push(JSON.stringify(value));
+          }
         } else {
-          setClause.push(`${dbField} = $${paramIndex}`);
-          values.push(value);
+          // Handle other fields with explicit type casting where needed
+          if (value === null) {
+            // For null values, you might need to specify the type
+            // Adjust the type based on your database schema
+            setClause.push(`${dbField} = $${paramIndex}`);
+            values.push(null);
+          } else if (typeof value === "boolean") {
+            setClause.push(`${dbField} = $${paramIndex}::boolean`);
+            values.push(value);
+          } else if (typeof value === "number") {
+            setClause.push(`${dbField} = $${paramIndex}::numeric`);
+            values.push(value);
+          } else if (value instanceof Date) {
+            setClause.push(`${dbField} = $${paramIndex}::timestamp`);
+            values.push(value);
+          } else {
+            // String and other types
+            setClause.push(`${dbField} = $${paramIndex}`);
+            values.push(value);
+          }
         }
         paramIndex++;
       }
     }
 
-    setClause.push(`last_updated = $${paramIndex}`);
-    values.push(new Date());
+    if (setClause.length === 0) {
+      throw new Error("No valid fields to update");
+    }
+
     values.push(id);
 
     const result = await query(
-      `UPDATE cases SET ${setClause.join(", ")} WHERE id = $${
-        paramIndex + 1
-      } RETURNING *`,
+      `UPDATE cases SET ${setClause.join(
+        ", "
+      )} WHERE id = $${paramIndex} RETURNING *`,
       values
     );
 
@@ -200,7 +243,7 @@ export class CaseService {
   ): Promise<Case> {
     const result = await query(
       `UPDATE cases 
-       SET status = 'Escalated', priority = $1, last_updated = $2,
+       SET status = 'Escalated', priority = $1, updated_at = $2,
            metadata = COALESCE(metadata, '{}')::jsonb || $3::jsonb
        WHERE id = $4 AND user_id = $5 
        RETURNING *`,
@@ -291,7 +334,8 @@ export class CaseService {
       ethTxHash: dbCase.eth_tx_hash,
       ceFileStatus: dbCase.ce_file_status,
       submissionDate: dbCase.submission_date,
-      lastUpdated: dbCase.last_updated,
+      updatedAt: dbCase.updated_at,
+      createdAt: dbCase.created_at,
       attachments: dbCase.attachments ? JSON.parse(dbCase.attachments) : null,
       metadata: dbCase.metadata ? JSON.parse(dbCase.metadata) : null,
       suggestedActions: dbCase.suggested_actions

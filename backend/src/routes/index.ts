@@ -135,7 +135,7 @@ router.get('/status', (req, res) => {
       documents: 'operational',
       notifications: 'operational'
     },
-    lastUpdated: new Date().toISOString()
+    updatedAt: new Date().toISOString()
   });
 });
 

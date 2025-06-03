@@ -6,6 +6,7 @@ export class CaseModel {
   static async create(caseData: {
     id: string;
     caseRef: string;
+    title: string;
     userId: string;
     clientName: string;
     description: string;
@@ -24,15 +25,16 @@ export class CaseModel {
 
     const result = await query(
       `INSERT INTO cases (
-        id, case_ref, user_id, client_name, description, jurisdiction,
+        id, case_ref,title, user_id, client_name, description, jurisdiction,
         issue_category, escalation_level, ai_confidence, urgency_score,
         suggested_actions, status, priority, attachments, metadata,
-        submission_date, last_updated, ce_file_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        submission_date, created_at,updated_at, ce_file_status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,$19)
       RETURNING *`,
       [
         caseData.id,
         caseData.caseRef,
+        caseData.title,
         caseData.userId,
         caseData.clientName,
         caseData.description,
@@ -46,6 +48,7 @@ export class CaseModel {
         caseData.priority || 'Normal',
         JSON.stringify(caseData.attachments || {}),
         JSON.stringify(caseData.metadata || {}),
+        now,
         now,
         now,
         'Pending'
@@ -156,7 +159,7 @@ export class CaseModel {
       return await this.findById(id);
     }
 
-    setClause.push(`last_updated = $${paramIndex}`);
+    setClause.push(`updated_at = $${paramIndex}`);
     values.push(new Date());
     values.push(id);
 
@@ -335,6 +338,7 @@ export class CaseModel {
   private static mapRow(row: any): Case {
     return {
       id: row.id,
+      title: row.title,
       caseRef: row.case_ref,
       userId: row.user_id,
       clientName: row.client_name,
@@ -349,7 +353,8 @@ export class CaseModel {
       ethTxHash: row.eth_tx_hash,
       ceFileStatus: row.ce_file_status,
       submissionDate: row.submission_date,
-      lastUpdated: row.last_updated,
+      updatedAt: row.updated_at,
+      createdAt: row.created_at,
       attachments: row.attachments ? JSON.parse(row.attachments) : null,
       metadata: row.metadata ? JSON.parse(row.metadata) : null,
       suggestedActions: row.suggested_actions ? JSON.parse(row.suggested_actions) : []
