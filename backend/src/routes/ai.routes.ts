@@ -69,12 +69,12 @@ router.get('/stats',
 );
 
 // Escalation analysis - Tier 2+ only
-router.post('/analyze-escalation',
+/* router.post('/analyze-escalation',
   tierCheckMiddleware(['Tier 2', 'Tier 3', 'Tier 4']),
   rateLimitMiddleware({ windowMs: 60 * 1000, max: 10 }),
   validationMiddleware(analyzeEscalationSchema),
   aiController.analyzeEscalation
-);
+); */
 
 // Case summary generation - Tier 3+ only
 router.post('/generate-summary/:caseId',

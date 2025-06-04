@@ -163,3 +163,13 @@ export interface AIFeedback {
   suggestedEscalation?: EscalationLevel;
   createdAt: Date;
 }
+
+export interface EscalationAnalysis {
+  shouldEscalate: boolean;
+  confidence: number;
+  reasons: string[];
+  suggestedPriority: 'Normal' | 'High' | 'Critical';
+  urgencyScore: number;
+  riskFactors: string[];
+  recommendation: string;
+}

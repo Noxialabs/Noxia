@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { CaseService } from "../services/case.service";
 import { AIService } from "../services/ai.service";
 import { asyncHandler } from "../middleware/error.middleware";
+import { query } from "../database/connection";
+
 import {
   APIResponse,
   PaginatedResponse,
@@ -188,25 +190,129 @@ export class CaseController {
       data: stats,
     } as APIResponse);
   });
-
   escalateCase = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const caseId = req.params.id;
     const { reason, priority } = req.body;
 
-    const escalatedCase = await this.caseService.escalateCase(caseId, userId, {
-      reason,
-      priority: priority || "High",
-      escalatedBy: userId,
-      escalatedAt: new Date(),
-    });
+    try {
+      const result = await this.caseService.escalateCase(caseId, userId, {
+        reason,
+        priority: priority || "High",
+        escalatedBy: userId,
+        escalatedAt: new Date(),
+      });
 
-    logger.info(`Case escalated: ${escalatedCase.caseRef} by user ${userId}`);
+      logger.info(`Case escalated: ${result.case.caseRef} by user ${userId}`);
+
+      res.json({
+        success: true,
+        message: "Case escalated successfully",
+        data: {
+          case: result.case,
+          aiAnalysis: {
+            shouldEscalate: result.aiAnalysis.shouldEscalate,
+            confidence: result.aiAnalysis.confidence,
+            recommendation: result.aiAnalysis.recommendation,
+            suggestedPriority: result.aiAnalysis.suggestedPriority,
+            riskFactors: result.aiAnalysis.riskFactors,
+          },
+          escalationApproved: result.escalationApproved,
+        },
+      } as APIResponse);
+    } catch (error: any) {
+      // Handle specific escalation errors
+      if (error.message.includes("AI analysis advises against escalation")) {
+        res.status(400).json({
+          success: false,
+          message: "Escalation denied by AI analysis",
+          code: "AI_ESCALATION_DENIED",
+          details: {
+            reason: error.message,
+          },
+        } as APIResponse);
+        return;
+      }
+
+      if (error.message === "Case is already escalated") {
+        res.status(400).json({
+          success: false,
+          message: "Case is already escalated",
+          code: "ALREADY_ESCALATED",
+        } as APIResponse);
+        return;
+      }
+
+      if (error.message === "Cannot escalate closed or completed case") {
+        res.status(400).json({
+          success: false,
+          message: "Cannot escalate closed or completed case",
+          code: "INVALID_CASE_STATUS",
+        } as APIResponse);
+        return;
+      }
+
+      // Re-throw other errors to be handled by error middleware
+      throw error;
+    }
+  });
+
+  /**
+   * Preview what AI thinks about escalating a case without actually doing it
+   */
+  previewEscalation = asyncHandler(async (req: Request, res: Response) => {
+    const caseId = req.params.id;
+    const { reason } = req.body;
+
+    // Get the current case data
+    const currentCaseResult = await query(`SELECT * FROM cases WHERE id = $1`, [
+      caseId,
+    ]);
+
+    if (currentCaseResult.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "Case not found",
+        code: "CASE_NOT_FOUND",
+      } as APIResponse);
+      return;
+    }
+
+    const currentCase = this.caseService.mapDatabaseCase(
+      currentCaseResult.rows[0]
+    );
+
+    // Get AI analysis without actually escalating
+    const aiService = new AIService();
+    const aiAnalysis = await aiService.analyzeEscalation({
+      title: currentCase.title,
+      description: currentCase.description,
+      currentPriority: currentCase.priority,
+      currentStatus: currentCase.status,
+      issueCategory: currentCase.issueCategory,
+      jurisdiction: currentCase.jurisdiction,
+      submissionDate: currentCase.submissionDate,
+      userReason: reason,
+    });
 
     res.json({
       success: true,
-      message: "Case escalated successfully",
-      data: escalatedCase,
+      message: "Escalation analysis completed",
+      data: {
+        currentCase: {
+          id: currentCase.id,
+          caseRef: currentCase.caseRef,
+          status: currentCase.status,
+          priority: currentCase.priority,
+        },
+        aiAnalysis,
+        recommendation:
+          aiAnalysis.shouldEscalate && aiAnalysis.confidence >= 0.6
+            ? "APPROVE_ESCALATION"
+            : aiAnalysis.shouldEscalate && aiAnalysis.confidence >= 0.4
+            ? "CONDITIONAL_APPROVAL"
+            : "REVIEW_REQUIRED",
+      },
     } as APIResponse);
   });
 
@@ -220,4 +326,3 @@ export class CaseController {
   }
 }
 
-// ===================================================

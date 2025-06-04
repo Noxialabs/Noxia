@@ -116,7 +116,7 @@ export class AIController {
     } as APIResponse);
   });
 
-  analyzeEscalation = asyncHandler(async (req: Request, res: Response) => {
+/*   analyzeEscalation = asyncHandler(async (req: Request, res: Response) => {
     const { subject, body, customerTier, urgency, context } = req.body;
 
     const analysis = await this.aiService.analyzeEscalation({
@@ -131,7 +131,7 @@ export class AIController {
       success: true,
       data: analysis
     } as APIResponse);
-  });
+  }); */
 
   generateSummary = asyncHandler(async (req: Request, res: Response) => {
     const { caseId } = req.params;

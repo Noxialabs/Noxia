@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { query } from "../database/connection";
-import { AIClassification } from "../types";
+import { AIClassification, EscalationAnalysis } from "../types";
 import { logger } from "../utils/logger.utils";
 import { v4 as uuidv4 } from "uuid";
 
@@ -78,8 +78,8 @@ ${context ? `Additional Context: ${JSON.stringify(context)}` : ""}
       const response = await this.openai.chat.completions.create({
         model: process.env.OPENAI_MODEL || "gpt-4o",
         messages: [{ role: "user", content: prompt }],
-        //  temperature: parseFloat(process.env.OPENAI_TEMPERATURE || "0.2"),
-        // max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || "1000"),
+        temperature: parseFloat(process.env.OPENAI_TEMPERATURE || "0.2"),
+        max_tokens: parseInt(process.env.OPENAI_MAX_TOKENS || "1000"),
       });
 
       console.log("Response: ", response);
@@ -88,8 +88,7 @@ ${context ? `Additional Context: ${JSON.stringify(context)}` : ""}
         throw new Error("No response from OpenAI");
       }
 
-      const classification = JSON.parse(rawResponse);
-
+      const classification = this.parseOpenAIResponse(rawResponse);
       // Validate response structure
       if (
         !classification.issueCategory ||
@@ -305,65 +304,6 @@ ${context ? `Additional Context: ${JSON.stringify(context)}` : ""}
     };
   }
 
-  async analyzeEscalation(data: {
-    subject: string;
-    body: string;
-    customerTier?: string;
-    urgency?: string;
-    context?: any;
-  }): Promise<any> {
-    const prompt = `
-You are an AI escalation analyst for a crime reporting platform. Analyze the following case and determine if it requires escalation.
-
-Consider these factors:
-- Immediate danger to the person
-- Ongoing criminal activity
-- Government/police corruption or retaliation
-- Time-sensitive legal matters
-- Pattern of systematic abuse
-- Threats or intimidation
-
-Subject: "${data.subject}"
-Body: "${data.body}"
-Customer Tier: ${data.customerTier || "Unknown"}
-Reported Urgency: ${data.urgency || "Unknown"}
-
-Return JSON:
-{
-  "escalate": true/false,
-  "routeTo": "Legal Team" | "Emergency Response" | "Corruption Investigation" | "Standard Processing",
-  "reason": "Explanation for escalation decision",
-  "urgencyLevel": 1-10,
-  "recommendedActions": ["action1", "action2"]
-}
-`;
-
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-        max_tokens: 500,
-      });
-
-      return JSON.parse(response.choices[0]?.message?.content || "{}");
-    } catch (error) {
-      logger.error("Escalation analysis error:", error);
-
-      // Safe fallback - always escalate if in doubt
-      return {
-        escalate: true,
-        routeTo: "Manual Review",
-        reason: "AI analysis failed - requires human review",
-        urgencyLevel: 7,
-        recommendedActions: [
-          "Manual review required",
-          "Contact escalation team",
-        ],
-      };
-    }
-  }
-
   async generateCaseSummary(caseId: string, userId: string): Promise<string> {
     // Get case details
     const caseResult = await query(
@@ -411,5 +351,147 @@ Format as plain text, professional tone.
       logger.error("Case summary generation error:", error);
       return `Case Summary: ${caseData.case_ref} - ${caseData.issue_category} case requiring ${caseData.escalation_level} attention. Manual summary required due to AI processing error.`;
     }
+  }
+
+  async analyzeEscalation(caseData: {
+    title: string;
+    description: string;
+    currentPriority: string;
+    currentStatus: string;
+    issueCategory: string;
+    jurisdiction?: string;
+    submissionDate: Date;
+    userReason?: string; // Manual escalation reason from user
+  }): Promise<EscalationAnalysis> {
+    try {
+      const daysSinceSubmission = Math.floor(
+        (new Date().getTime() - caseData.submissionDate.getTime()) /
+          (1000 * 60 * 60 * 24)
+      );
+
+      const prompt = `
+        Analyze the following legal case for escalation necessity:
+
+        Case Details:
+        - Title: ${caseData.title}
+        - Description: ${caseData.description}
+        - Current Priority: ${caseData.currentPriority}
+        - Current Status: ${caseData.currentStatus}
+        - Issue Category: ${caseData.issueCategory}
+        - Jurisdiction: ${caseData.jurisdiction || "Not specified"}
+        - Days since submission: ${daysSinceSubmission}
+        ${
+          caseData.userReason
+            ? `- Manual escalation reason: ${caseData.userReason}`
+            : ""
+        }
+
+        Analyze this case and determine:
+        1. Should this case be escalated? (true/false)
+        2. Confidence level (0-1)
+        3. Specific reasons for escalation
+        4. Suggested priority level (Normal/High/Critical)
+        5. Urgency score (1-10)
+        6. Risk factors identified
+        7. Overall recommendation
+
+        Consider factors like:
+        - Severity of the issue
+        - Time sensitivity
+        - Public safety implications
+        - Legal complexity
+        - Potential for media attention
+        - Statute of limitations concerns
+        - Evidence preservation needs
+        - Victim vulnerability
+
+        Respond in this exact JSON format:
+        {
+          "shouldEscalate": boolean,
+          "confidence": number,
+          "reasons": ["reason1", "reason2"],
+          "suggestedPriority": "Normal|High|Critical",
+          "urgencyScore": number,
+          "riskFactors": ["factor1", "factor2"],
+          "recommendation": "detailed recommendation text"
+        }
+      `;
+
+      const response = await this.openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a legal case analysis AI that helps determine if cases need escalation. Always respond with valid JSON only.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 1000,
+      });
+
+      const content = response.choices[0].message?.content;
+      console.log("Content ", content);
+
+      if (!content) {
+        throw new Error("No response from AI service");
+      }
+
+      // Parse the JSON response
+      const analysis: EscalationAnalysis = this.parseOpenAIResponse(content);
+
+      // Validate the response structure
+      if (
+        typeof analysis.shouldEscalate !== "boolean" ||
+        typeof analysis.confidence !== "number" ||
+        !Array.isArray(analysis.reasons) ||
+        !["Normal", "High", "Critical"].includes(analysis.suggestedPriority) ||
+        typeof analysis.urgencyScore !== "number"
+      ) {
+        throw new Error("Invalid AI response structure");
+      }
+
+      // Ensure confidence is between 0 and 1
+      analysis.confidence = Math.max(0, Math.min(1, analysis.confidence));
+
+      // Ensure urgency score is between 1 and 10
+      analysis.urgencyScore = Math.max(
+        1,
+        Math.min(10, Math.floor(analysis.urgencyScore))
+      );
+
+      logger.info(
+        `AI escalation analysis completed for case. Should escalate: ${analysis.shouldEscalate}, Confidence: ${analysis.confidence}`
+      );
+
+      return analysis;
+    } catch (error) {
+      logger.error("Error in AI escalation analysis:", error);
+
+      // Return a conservative default analysis if AI fails
+      return {
+        shouldEscalate: false,
+        confidence: 0.1,
+        reasons: ["AI analysis failed - manual review required"],
+        suggestedPriority: "Normal",
+        urgencyScore: 5,
+        riskFactors: ["Unable to assess risk factors"],
+        recommendation:
+          "AI analysis unavailable. Please review case manually and use professional judgment for escalation decision.",
+      };
+    }
+  }
+
+  parseOpenAIResponse(rawResponse: string) {
+    const jsonString = rawResponse
+      .replace(/^```json\s*/i, "") 
+      .replace(/^```\s*/i, "") 
+      .replace(/```$/, "") 
+      .trim();
+    return JSON.parse(jsonString);
   }
 }
