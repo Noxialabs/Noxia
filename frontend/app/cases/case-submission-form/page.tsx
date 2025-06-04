@@ -1,19 +1,20 @@
 'use client'
 import React, { useState } from 'react';
-import { AlertCircle, Upload, X, FileText, Shield } from 'lucide-react';
+import { AlertCircle, Shield } from 'lucide-react';
 import { CaseService } from '@/service/case/case.service';
 
 const CaseSubmissionForm = () => {
   const [formData, setFormData] = useState({
     clientName: '',
+    title: '',
     description: '',
-    jurisdiction: '',
-    attachments: []
+    jurisdiction: ''
   });
   
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState(null);
+  const [submissionResult, setSubmissionResult] = useState(null);
   const [characterCount, setCharacterCount] = useState(0);
 
   const jurisdictions = [
@@ -50,47 +51,33 @@ const CaseSubmissionForm = () => {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'text/plain', 'application/msword'];
-    
-    const validFiles = files.filter(file => {
-      if (file.size > maxSize) {
-        alert(`File ${file.name} is too large. Maximum size is 10MB.`);
-        return false;
-      }
-      if (!allowedTypes.includes(file.type)) {
-        alert(`File ${file.name} type not supported. Allowed: PDF, JPG, PNG, TXT, DOC`);
-        return false;
-      }
-      return true;
-    });
-
-    setFormData(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, ...validFiles].slice(0, 5) // Max 5 files
-    }));
-  };
-
-  const removeFile = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      attachments: prev.attachments.filter((_, i) => i !== index)
-    }));
-  };
-
   const validateForm = () => {
     const newErrors = {};
 
     if (!formData.clientName.trim()) {
       newErrors.clientName = 'Client name is required';
+    } else if (formData.clientName.trim().length < 2) {
+      newErrors.clientName = 'Client name must be at least 2 characters';
+    } else if (formData.clientName.trim().length > 255) {
+      newErrors.clientName = 'Client name cannot exceed 255 characters';
+    }
+
+    if (formData.title.trim() && formData.title.trim().length < 2) {
+      newErrors.title = 'Title must be at least 2 characters';
+    } else if (formData.title.trim().length > 255) {
+      newErrors.title = 'Title cannot exceed 255 characters';
     }
 
     if (!formData.description.trim()) {
       newErrors.description = 'Case description is required';
     } else if (formData.description.trim().length < 50) {
-      newErrors.description = 'Description must be at least 50 characters';
+      newErrors.description = 'Case description must be at least 50 characters';
+    } else if (formData.description.trim().length > 5000) {
+      newErrors.description = 'Case description cannot exceed 5000 characters';
+    }
+
+    if (formData.jurisdiction.trim().length > 100) {
+      newErrors.jurisdiction = 'Jurisdiction cannot exceed 100 characters';
     }
 
     setErrors(newErrors);
@@ -109,31 +96,24 @@ const CaseSubmissionForm = () => {
 
     try {
       // Create FormData for API submission
-      const submitData = new FormData();
-      submitData.append('clientName', formData.clientName);
-      submitData.append('description', formData.description);
-      
-      if (formData.jurisdiction) {
-        submitData.append('jurisdiction', formData.jurisdiction);
-      }
-
-      // Add file attachments
-      if (formData.attachments && formData.attachments.length > 0) {
-        formData.attachments.forEach((file) => {
-          submitData.append('attachments', file);
-        });
-      }
+      const submitData = {
+        clientName: formData.clientName,
+        title: formData.title || undefined,
+        description: formData.description,
+        jurisdiction: formData.jurisdiction || undefined,
+      };
       
       // Call the CaseService
       const response = await CaseService.submit(submitData);
-
-      if (response.success) {
+      console.log("Response ",response);
+      if (response.status==201) {
         setSubmitStatus('success');
+        setSubmissionResult(response.data.data);
         setFormData({
           clientName: '',
+          title: '',
           description: '',
-          jurisdiction: '',
-          attachments: []
+          jurisdiction: ''
         });
         setCharacterCount(0);
       } else {
@@ -162,13 +142,72 @@ const CaseSubmissionForm = () => {
       </div>
 
       {/* Status Messages */}
-      {submitStatus === 'success' && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-400 rounded-full mr-3"></div>
+      {submitStatus === 'success' && submissionResult && (
+        <div className="mb-6 p-6 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-start mb-4">
+            <div className="w-4 h-4 bg-green-400 rounded-full mr-3 mt-1"></div>
             <div>
-              <h3 className="text-green-800 font-medium">Case Submitted Successfully</h3>
-              <p className="text-green-600 text-sm mt-1">Your case has been received and will be processed within 24 hours.</p>
+              <h3 className="text-green-800 font-bold text-lg">Case Submitted Successfully</h3>
+              <p className="text-green-600 text-sm mt-1">Your case has been received and analyzed by our AI system.</p>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg p-4 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">Case Reference</h4>
+                <p className="text-gray-900 font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                  {submissionResult.case.caseRef}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">Status</h4>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  {submissionResult.case.status}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">Category</h4>
+                <p className="text-gray-900 text-sm">{submissionResult.case.issueCategory}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">Priority</h4>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  submissionResult.case.priority === 'High' ? 'bg-red-100 text-red-800' :
+                  submissionResult.case.priority === 'Medium' ? 'bg-orange-100 text-orange-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  {submissionResult.case.priority}
+                </span>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-1">Escalation Level</h4>
+                <p className="text-gray-900 text-sm">{submissionResult.case.escalationLevel}</p>
+              </div>
+            </div>
+            
+            {submissionResult.case.suggestedActions && submissionResult.case.suggestedActions.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-700 text-sm mb-2">AI Recommended Actions</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  {JSON.parse(submissionResult.case.suggestedActions[0]).map((action, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="text-green-500 mr-2">•</span>
+                      {action}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            <div className="pt-3 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                <strong>Submitted:</strong> {new Date(submissionResult.case.submissionDate).toLocaleString()} | 
+                <strong> AI Confidence:</strong> {Math.round(submissionResult.case.aiConfidence * 100)}%
+              </p>
             </div>
           </div>
         </div>
@@ -208,6 +247,27 @@ const CaseSubmissionForm = () => {
           )}
         </div>
 
+        {/* Title */}
+        <div>
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+            Title (Optional)
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={formData.title}
+            onChange={handleInputChange}
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.title ? 'border-red-500 bg-red-50' : 'border-gray-300'
+            }`}
+            placeholder="Enter a brief title for the case"
+          />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+          )}
+        </div>
+
         {/* Jurisdiction */}
         <div>
           <label htmlFor="jurisdiction" className="block text-sm font-medium text-gray-700 mb-2">
@@ -218,7 +278,9 @@ const CaseSubmissionForm = () => {
             name="jurisdiction"
             value={formData.jurisdiction}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.jurisdiction ? 'border-red-500 bg-red-50' : 'border-gray-300'
+            }`}
           >
             <option value="">Select jurisdiction...</option>
             {jurisdictions.map(jurisdiction => (
@@ -227,6 +289,9 @@ const CaseSubmissionForm = () => {
               </option>
             ))}
           </select>
+          {errors.jurisdiction && (
+            <p className="mt-1 text-sm text-red-600">{errors.jurisdiction}</p>
+          )}
         </div>
 
         {/* Case Description */}
@@ -258,57 +323,6 @@ const CaseSubmissionForm = () => {
           </p>
         </div>
 
-        {/* File Attachments */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Attachments (Optional)
-          </label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600 mb-2">
-              Drag and drop files here, or{' '}
-              <label htmlFor="file-upload" className="text-blue-600 hover:text-blue-700 cursor-pointer">
-                browse
-              </label>
-            </p>
-            <p className="text-xs text-gray-500">
-              Supported: PDF, JPG, PNG, TXT, DOC (Max 10MB each, 5 files total)
-            </p>
-            <input
-              id="file-upload"
-              type="file"
-              multiple
-              accept=".pdf,.jpg,.jpeg,.png,.txt,.doc,.docx"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
-
-          {/* File List */}
-          {formData.attachments.length > 0 && (
-            <div className="mt-4 space-y-2">
-              {formData.attachments.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <FileText className="w-4 h-4 text-gray-500 mr-2" />
-                    <span className="text-sm text-gray-700">{file.name}</span>
-                    <span className="text-xs text-gray-500 ml-2">
-                      ({(file.size / 1024 / 1024).toFixed(1)} MB)
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Important Notice */}
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start">
@@ -333,12 +347,14 @@ const CaseSubmissionForm = () => {
             onClick={() => {
               setFormData({
                 clientName: '',
+                title: '',
                 description: '',
-                jurisdiction: '',
-                attachments: []
+                jurisdiction: ''
               });
               setCharacterCount(0);
               setErrors({});
+              setSubmitStatus(null);
+              setSubmissionResult(null);
             }}
           >
             Clear Form
