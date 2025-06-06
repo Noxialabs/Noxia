@@ -85,12 +85,14 @@ export class CaseController {
     const status = req.query.status as string;
     const priority = req.query.priority as string;
     const escalationLevel = req.query.escalationLevel as string;
+    const search = req.query.search as string;
 
     const filters = {
       userId,
       ...(status && { status }),
       ...(priority && { priority }),
       ...(escalationLevel && { escalationLevel }),
+      ...(search && { search }),
     };
 
     const { cases, total } = await this.caseService.getCases(
@@ -117,7 +119,7 @@ export class CaseController {
     const userId = (req as any).userId;
     const caseId = req.params.id;
 
-    const caseData = await this.caseService.getCaseById(caseId, userId);
+    const caseData = await this.caseService.getCaseWithDetails(caseId);
 
     if (!caseData) {
       return res.status(404).json({
@@ -138,7 +140,7 @@ export class CaseController {
     const updates = req.body;
 
     // Verify case ownership
-    const existingCase = await this.caseService.getCaseById(caseId, userId);
+    const existingCase = await this.caseService.getCaseById(caseId);
     if (!existingCase) {
       return res.status(404).json({
         success: false,
@@ -165,7 +167,7 @@ export class CaseController {
     const caseId = req.params.id;
 
     // Verify case ownership
-    const existingCase = await this.caseService.getCaseById(caseId, userId);
+    const existingCase = await this.caseService.getCaseById(caseId);
     if (!existingCase) {
       return res.status(404).json({
         success: false,

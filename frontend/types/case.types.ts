@@ -1,5 +1,3 @@
-import { UserProfile } from "./user.types";
-
 export interface Case {
   id: string;
   caseRef: string;
@@ -22,8 +20,6 @@ export interface Case {
   attachments?: CaseAttachment[];
   metadata?: Record<string, any>;
   suggestedActions?: string[];
-
-  user?: UserProfile;
 }
 
 // Case status types
@@ -71,7 +67,7 @@ export interface CaseSubmissionRequest {
   title: string;
   description: string;
   jurisdiction?: string;
-  attachments?: Express.Multer.File[];
+  attachments?: [];
 }
 
 // Case update request
@@ -81,7 +77,7 @@ export interface CaseUpdateRequest {
   jurisdiction?: string;
   status?: CaseStatus;
   priority?: CasePriority;
-  attachments?: Express.Multer.File[];
+  attachments?: [];
 }
 
 // Case escalation request
@@ -104,6 +100,18 @@ export interface CaseSearchFilters {
   dateTo?: string;
   userId?: string;
 }
+export interface CaseFilters {
+  status?: string;
+  priority?: string;
+  issueCategory?: string;
+  escalationLevel?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 
 // Case statistics
 export interface CaseStats {
@@ -173,30 +181,4 @@ export interface CaseAssignment {
   assignedAt: Date;
   status: "Active" | "Completed" | "Transferred";
   notes?: string;
-}
-
-interface CaseWithDetails {
-  // Base case data
-  id: string;
-  caseRef: string;
-  title: string;
-  userId?: string;
-  clientName: string;
-  description: string;
-  jurisdiction: string;
-  issueCategory: string;
-  escalationLevel: string;
-  aiConfidence: number;
-  status: string;
-  priority: string;
-  urgencyScore: number;
-  ethTxHash?: string;
-  ceFileStatus: string;
-  submissionDate: string;
-  updatedAt: string;
-  createdAt: string;
-  attachments: any;
-  metadata: any;
-
-  // Enhanced data
 }

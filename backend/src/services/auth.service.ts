@@ -122,6 +122,8 @@ export class AuthService {
     return {
       id: dbUser.id,
       email: dbUser.email,
+      firstName: dbUser.first_name,
+      lastName: dbUser.last_name,
       passwordHash: dbUser.password_hash,
       ethAddress: dbUser.eth_address,
       tier: dbUser.tier,

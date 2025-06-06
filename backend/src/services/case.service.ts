@@ -1,5 +1,10 @@
 import { query } from "../database/connection";
-import { Case, DashboardFilters, EscalationAnalysis } from "../types";
+import {
+  Case,
+  DashboardFilters,
+  EscalationAnalysis,
+  UserProfile,
+} from "../types";
 import { logger } from "../utils/logger.utils";
 import { v4 as uuidv4 } from "uuid";
 import { AIService } from "./ai.service";
@@ -83,6 +88,7 @@ export class CaseService {
       status?: string;
       priority?: string;
       escalationLevel?: string;
+      search?: string;
     },
     page: number = 1,
     limit: number = 10
@@ -129,6 +135,25 @@ export class CaseService {
       hasWhere = true;
     }
 
+    // Apply search filter across multiple fields
+    if (filters.search && filters.search.trim()) {
+      const searchCondition = `(
+        LOWER(case_ref) LIKE LOWER($${paramIndex}) OR 
+        CAST(id AS TEXT) LIKE LOWER($${paramIndex}) OR 
+        LOWER(title) LIKE LOWER($${paramIndex}) OR 
+        LOWER(issue_category) LIKE LOWER($${paramIndex}) OR 
+        LOWER(client_name) LIKE LOWER($${paramIndex})
+      )`;
+
+      whereClause += hasWhere
+        ? ` AND ${searchCondition}`
+        : `WHERE ${searchCondition}`;
+
+      values.push(`%${filters.search.trim()}%`);
+      paramIndex++;
+      hasWhere = true;
+    }
+
     // Get total count
     const countResult = await query(
       `SELECT COUNT(*) FROM cases ${whereClause}`,
@@ -149,10 +174,82 @@ export class CaseService {
     };
   }
 
-  async getCaseById(id: string, userId: string): Promise<Case | null> {
+  async getCaseById(id: string): Promise<Case | null> {
     const result = await query("SELECT * FROM cases WHERE id = $1", [id]);
 
     return result.rows.length > 0 ? this.mapDatabaseCase(result.rows[0]) : null;
+  }
+
+  async getCaseWithDetails(caseId: string): Promise<Case | null> {
+    try {
+      const caseResult = await query("SELECT * FROM cases WHERE id = $1", [
+        caseId,
+      ]);
+
+      if (caseResult.rows.length === 0) {
+        return null;
+      }
+
+      const baseCase = this.mapDatabaseCase(caseResult.rows[0]);
+      let userProfile: UserProfile | undefined;
+      if (baseCase.userId) {
+        userProfile = await this.getUserProfile(baseCase.userId);
+      }
+
+      return {
+        ...baseCase,
+        user: userProfile,
+      };
+    } catch (error) {
+      console.error("Error fetching case with details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user profile information
+   */
+  async getUserProfile(userId: string): Promise<UserProfile | undefined> {
+    try {
+      const userResult = await query(
+        `
+         SELECT 
+           u.*,
+           COUNT(DISTINCT c1.id) as cases_submitted,
+           COUNT(DISTINCT CASE WHEN c2.status IN ('Completed', 'Resolved') THEN c2.id END) as cases_resolved,
+           COALESCE(ur.reputation_score, 50) as reputation
+         FROM users u
+         LEFT JOIN cases c1 ON u.id = c1.user_id
+         LEFT JOIN cases c2 ON u.id = c2.user_id
+         LEFT JOIN user_reputation ur ON u.id = ur.user_id
+         WHERE u.id = $1
+         GROUP BY u.id, ur.reputation_score
+       `,
+        [userId]
+      );
+
+      if (userResult.rows.length === 0) {
+        return undefined;
+      }
+
+      const user = userResult.rows[0];
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        phone: user.phone,
+        joinedAt: user.created_at,
+        casesSubmitted: parseInt(user.cases_submitted),
+        casesResolved: parseInt(user.cases_resolved),
+        reputation: parseInt(user.reputation),
+        verified: user.email_verified || false,
+        lastLoginAt: user.last_login_at,
+      };
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return undefined;
+    }
   }
 
   // Improved safeParseJSON method
@@ -980,7 +1077,7 @@ export class CaseService {
 
   // Utility method to add attachment to existing case
   async addAttachment(caseId: string, attachment: any): Promise<Case> {
-    const currentCase = await this.getCaseById(caseId, ""); // Get current case
+    const currentCase = await this.getCaseById(caseId); // Get current case
     if (!currentCase) {
       throw new Error("Case not found");
     }
@@ -993,7 +1090,7 @@ export class CaseService {
 
   // Utility method to update metadata without overwriting
   async updateMetadata(caseId: string, newMetadata: any): Promise<Case> {
-    const currentCase = await this.getCaseById(caseId, ""); // Get current case
+    const currentCase = await this.getCaseById(caseId); // Get current case
     if (!currentCase) {
       throw new Error("Case not found");
     }
@@ -1006,7 +1103,7 @@ export class CaseService {
 
   // Utility method to add suggested action
   async addSuggestedAction(caseId: string, action: string): Promise<Case> {
-    const currentCase = await this.getCaseById(caseId, ""); // Get current case
+    const currentCase = await this.getCaseById(caseId); // Get current case
     if (!currentCase) {
       throw new Error("Case not found");
     }

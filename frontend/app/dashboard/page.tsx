@@ -30,77 +30,6 @@ import {
 } from "recharts";
 import { CaseService } from "@/service/case/case.service";
 
-// Import your actual case service
-
-// Mock service for demo - replace with your actual service
-/* const CaseService = {
-  getDashboardStats: async (filters = {}) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      status: 200,
-      data: {
-        success: true,
-        data: {
-          stats: {
-            total_cases: "45",
-            pending_cases: "12",
-            in_progress_cases: "18",
-            completed_cases: "15",
-            escalated_cases: "3",
-            urgent_cases: "7",
-            resolved_cases: "15",
-            recent_cases: "8",
-            avg_confidence: "82.5",
-            avg_urgency: "6.8",
-            total_change: 15
-          },
-          trendData: [
-            { name: 'Mon', cases: 4, resolved: 2, pending: 2, urgent: 1 },
-            { name: 'Tue', cases: 6, resolved: 3, pending: 3, urgent: 2 },
-            { name: 'Wed', cases: 8, resolved: 4, pending: 4, urgent: 1 },
-            { name: 'Thu', cases: 5, resolved: 6, pending: 2, urgent: 2 },
-            { name: 'Fri', cases: 9, resolved: 5, pending: 4, urgent: 3 },
-            { name: 'Sat', cases: 3, resolved: 2, pending: 1, urgent: 0 },
-            { name: 'Sun', cases: 7, resolved: 4, pending: 3, urgent: 1 }
-          ],
-          statusDistribution: [
-            { name: 'Pending', value: 12, color: '#f59e0b', percentage: 26.7 },
-            { name: 'In Progress', value: 18, color: '#3b82f6', percentage: 40.0 },
-            { name: 'Completed', value: 15, color: '#10b981', percentage: 33.3 }
-          ],
-          priorityDistribution: [
-            { name: 'Critical', value: 3, color: '#dc2626' },
-            { name: 'High', value: 7, color: '#ea580c' },
-            { name: 'Medium', value: 20, color: '#d97706' },
-            { name: 'Low', value: 15, color: '#65a30d' }
-          ],
-          recentActivity: [
-            { case_id: 'CAS-2024-001', title: 'Corruption in public works', action_type: 'submitted', status: 'Pending', time_ago: '2 hours ago' },
-            { case_id: 'CAS-2024-002', title: 'Bribery incident report', action_type: 'updated', status: 'In Progress', time_ago: '4 hours ago' },
-            { case_id: 'CAS-2024-003', title: 'Financial irregularities', action_type: 'updated', status: 'Completed', time_ago: '1 day ago' }
-          ]
-        }
-      }
-    };
-  },
-  
-  getFilterOptions: async () => {
-    return {
-      status: 200,
-      data: {
-        statuses: ['Pending', 'In Progress', 'Completed', 'Escalated', 'Resolved'],
-        urgencyLevels: ['Low', 'Medium', 'High', 'Critical'],
-        dateRanges: [
-          { label: '7 Days', value: '7d' },
-          { label: '30 Days', value: '30d' },
-          { label: '90 Days', value: '90d' },
-          { label: '1 Year', value: '1y' }
-        ]
-      }
-    };
-  }
-};
- */
 interface DashboardData {
   stats: any;
   trendData: any[];
@@ -348,7 +277,7 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4">
+              {/*  <div className="flex items-center space-x-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors"
@@ -360,7 +289,7 @@ export default function Dashboard() {
                   <Download className="w-4 h-4" />
                   <span className="text-sm font-medium">Export</span>
                 </button>
-              </div>
+              </div> */}
             </div>
 
             {/* Advanced Filters */}

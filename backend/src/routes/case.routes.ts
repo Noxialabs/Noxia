@@ -57,7 +57,7 @@ const getCasesSchema = Joi.object({
     .optional(),
   priority: Joi.string().valid("Low", "Normal", "High", "Critical").optional(),
   escalationLevel: Joi.string().valid("Basic", "Priority", "Urgent").optional(),
-  search: Joi.string().min(3).max(100).optional(),
+  search: Joi.string().max(100).optional(),
 });
 
 router.post(

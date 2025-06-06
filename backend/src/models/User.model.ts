@@ -1,7 +1,7 @@
 // src/models/User.model.ts
-import { query } from '../database/connection';
-import { User } from '../types';
-import { logger } from '../utils/logger.utils';
+import { query } from "../database/connection";
+import { User } from "../types";
+import { logger } from "../utils/logger.utils";
 
 export class UserModel {
   static async create(userData: {
@@ -13,7 +13,7 @@ export class UserModel {
     isActive?: boolean;
   }): Promise<User> {
     const now = new Date();
-    
+
     const result = await query(
       `INSERT INTO users (id, email, password_hash, eth_address, tier, is_active, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -23,10 +23,10 @@ export class UserModel {
         userData.email,
         userData.passwordHash,
         userData.ethAddress || null,
-        userData.tier || 'Tier 1',
+        userData.tier || "Tier 1",
         userData.isActive !== false,
         now,
-        now
+        now,
       ]
     );
 
@@ -35,7 +35,7 @@ export class UserModel {
 
   static async findById(id: string): Promise<User | null> {
     const result = await query(
-      'SELECT * FROM users WHERE id = $1 AND is_active = true',
+      "SELECT * FROM users WHERE id = $1 AND is_active = true",
       [id]
     );
 
@@ -44,7 +44,7 @@ export class UserModel {
 
   static async findByEmail(email: string): Promise<User | null> {
     const result = await query(
-      'SELECT * FROM users WHERE email = $1 AND is_active = true',
+      "SELECT * FROM users WHERE email = $1 AND is_active = true",
       [email]
     );
 
@@ -53,21 +53,24 @@ export class UserModel {
 
   static async findByEthAddress(ethAddress: string): Promise<User | null> {
     const result = await query(
-      'SELECT * FROM users WHERE eth_address = $1 AND is_active = true',
+      "SELECT * FROM users WHERE eth_address = $1 AND is_active = true",
       [ethAddress]
     );
 
     return result.rows.length > 0 ? this.mapRow(result.rows[0]) : null;
   }
 
-  static async update(id: string, updates: Partial<User>): Promise<User | null> {
+  static async update(
+    id: string,
+    updates: Partial<User>
+  ): Promise<User | null> {
     const setClause = [];
     const values = [];
     let paramIndex = 1;
 
     // Build dynamic update query
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined && key !== 'id' && key !== 'createdAt') {
+      if (value !== undefined && key !== "id" && key !== "createdAt") {
         const dbField = this.camelToSnake(key);
         setClause.push(`${dbField} = $${paramIndex}`);
         values.push(value);
@@ -85,7 +88,9 @@ export class UserModel {
     values.push(id); // for WHERE clause
 
     const result = await query(
-      `UPDATE users SET ${setClause.join(', ')} WHERE id = $${paramIndex + 1} AND is_active = true RETURNING *`,
+      `UPDATE users SET ${setClause.join(", ")} WHERE id = $${
+        paramIndex + 1
+      } AND is_active = true RETURNING *`,
       values
     );
 
@@ -94,7 +99,7 @@ export class UserModel {
 
   static async delete(id: string): Promise<boolean> {
     const result = await query(
-      'UPDATE users SET is_active = false, updated_at = $1 WHERE id = $2',
+      "UPDATE users SET is_active = false, updated_at = $1 WHERE id = $2",
       [new Date(), id]
     );
 
@@ -111,7 +116,7 @@ export class UserModel {
     limit: number = 10
   ): Promise<{ users: User[]; total: number }> {
     const offset = (page - 1) * limit;
-    let whereClause = 'WHERE 1=1';
+    let whereClause = "WHERE 1=1";
     const values: any[] = [];
     let paramIndex = 1;
 
@@ -148,8 +153,8 @@ export class UserModel {
     );
 
     return {
-      users: usersResult.rows.map(row => this.mapRow(row)),
-      total: parseInt(countResult.rows[0].count)
+      users: usersResult.rows.map((row) => this.mapRow(row)),
+      total: parseInt(countResult.rows[0].count),
     };
   }
 
@@ -174,12 +179,12 @@ export class UserModel {
         tier1: parseInt(result.rows[0].tier_1_users),
         tier2: parseInt(result.rows[0].tier_2_users),
         tier3: parseInt(result.rows[0].tier_3_users),
-        tier4: parseInt(result.rows[0].tier_4_users)
+        tier4: parseInt(result.rows[0].tier_4_users),
       },
       activeUsers: parseInt(result.rows[0].active_users),
       inactiveUsers: parseInt(result.rows[0].inactive_users),
       newUsers30d: parseInt(result.rows[0].new_users_30d),
-      usersWithEth: parseInt(result.rows[0].users_with_eth)
+      usersWithEth: parseInt(result.rows[0].users_with_eth),
     };
   }
 
@@ -187,17 +192,19 @@ export class UserModel {
     return {
       id: row.id,
       email: row.email,
+      firstName: row.first_name,
+      lastName: row.last_name,
       passwordHash: row.password_hash,
       ethAddress: row.eth_address,
       tier: row.tier,
       isActive: row.is_active,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      role: row.role
+      role: row.role,
     };
   }
 
   private static camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 }

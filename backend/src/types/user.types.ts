@@ -1,9 +1,12 @@
 export interface User {
   id: string;
   email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
   passwordHash?: string; // Optional for response objects
   ethAddress?: string;
-  tier: UserTierLevel;
+  tier?: UserTierLevel;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -180,4 +183,19 @@ export interface PaginatedUsersResponse {
     hasNext: boolean;
     hasPrev: boolean;
   };
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  address?: string;
+  joinedAt: string;
+  casesSubmitted: number;
+  casesResolved: number;
+  reputation: number;
+  verified: boolean;
+  lastLoginAt?: string;
 }
