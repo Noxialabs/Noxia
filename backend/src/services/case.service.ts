@@ -3,6 +3,7 @@ import { Case, DashboardFilters, EscalationAnalysis } from "../types";
 import { logger } from "../utils/logger.utils";
 import { v4 as uuidv4 } from "uuid";
 import { AIService } from "./ai.service";
+import { filter } from "compression";
 
 export class CaseService {
   async createCase(caseData: {
@@ -91,6 +92,7 @@ export class CaseService {
     const values: any[] = [];
     let paramIndex = 1;
     let hasWhere = false;
+    console.log("Filters : ", filters);
 
     // Apply userId filter only if userId has a value
     if (filters.userId) {
@@ -951,7 +953,6 @@ export class CaseService {
   }
 
   public mapDatabaseCase(dbCase: any): Case {
-    console.log("DB Case: ", dbCase);
     return {
       id: dbCase.id,
       caseRef: dbCase.case_ref,

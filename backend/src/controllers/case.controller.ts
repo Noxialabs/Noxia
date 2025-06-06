@@ -84,11 +84,13 @@ export class CaseController {
     const limit = parseInt(req.query.limit as string) || 10;
     const status = req.query.status as string;
     const priority = req.query.priority as string;
+    const escalationLevel = req.query.escalationLevel as string;
 
     const filters = {
       userId,
       ...(status && { status }),
       ...(priority && { priority }),
+      ...(escalationLevel && { escalationLevel }),
     };
 
     const { cases, total } = await this.caseService.getCases(

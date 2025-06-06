@@ -56,6 +56,7 @@ const getCasesSchema = Joi.object({
     .valid("Pending", "In Progress", "Completed", "Escalated", "Closed")
     .optional(),
   priority: Joi.string().valid("Low", "Normal", "High", "Critical").optional(),
+  escalationLevel: Joi.string().valid("Basic", "Priority", "Urgent").optional(),
   search: Joi.string().min(3).max(100).optional(),
 });
 
