@@ -23,7 +23,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen transition-all duration-300">
+    <div className="min-h-screen transition-all duration-300 pa-4">
       {isAuthenticated ? (
         <DashboardLayout user={user}>
           {children}

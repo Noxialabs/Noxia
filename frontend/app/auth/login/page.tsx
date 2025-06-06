@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import { UserService } from "@/service/user/user.service";
 import { CookieHelper } from "@/helper/cookie.helper";
 import { useAuth } from "@/hooks/useAuth";
+import AppLayout from "@/components/layout/AppLayout";
 
 export default function Login() {
   const { successLogin } = useAuth();
@@ -91,7 +92,8 @@ export default function Login() {
   };
 
   return (
-    <div className="max-w-[500px] mx-auto mt-[50px] p-6 bg-card rounded-[12px] shadow-md">
+   <AppLayout>
+     <div className="max-w-[500px] mx-auto mt-[50px] p-6 bg-card rounded-[12px] shadow-md mb-4">
       <div className="text-center mb-6">
         <h1 className="text-2xl font-semibold text-foreground">Welcome Back</h1>
         <p className="text-muted-foreground mt-2">Log in to your account</p>
@@ -148,5 +150,6 @@ export default function Login() {
         </p>
       </div>
     </div>
+   </AppLayout>
   );
 }
