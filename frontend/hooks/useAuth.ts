@@ -1,9 +1,11 @@
+// hooks/useAuth.ts
 "use client";
 
 import { CookieHelper } from "@/helper/cookie.helper";
 import { UserService } from "@/service/user/user.service";
 import { AuthServerUtils } from "@/utils/auth.server";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: string;
@@ -14,6 +16,7 @@ interface User {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+  [key: string]: any;
 }
 
 interface AuthState {
@@ -21,14 +24,17 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
+  error: string | null;
 }
 
 export const useAuth = () => {
+  const router = useRouter();
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: null,
     isAuthenticated: false,
     loading: true,
+    error: null,
   });
 
   /**
@@ -36,36 +42,42 @@ export const useAuth = () => {
    */
   const initializeAuth = useCallback(async () => {
     try {
-      // Use server utils to get initial state
-      const { user, token, isAuthenticated } = AuthServerUtils.getAuthFromCookies();
+      setAuthState((prev) => ({ ...prev, loading: true, error: null }));
 
-      if (isAuthenticated && token && user) {
-        try {
-          // Verify token is still valid by fetching user profile
-          const response = await UserService.getUserProfile();
+      // Check for token in cookies
+      const token = CookieHelper.get({ key: "token" });
 
-          if (response.success && response.data) {
-            setAuthState({
-              user: response.data,
-              token,
-              isAuthenticated: true,
-              loading: false,
-            });
-          } else {
-            // Token invalid, clear auth
-            await logout();
-          }
-        } catch (error) {
-          console.error("Error validating token:", error);
-          await logout();
-        }
-      } else {
+      if (!token) {
         setAuthState({
           user: null,
           token: null,
           isAuthenticated: false,
           loading: false,
+          error: null,
         });
+        return;
+      }
+
+      try {
+        // Verify token is still valid by fetching user profile
+        const response = await UserService.getUserProfile();
+
+        if (response.data && !response.data.error) {
+          const userData = response.data.data || response.data;
+          setAuthState({
+            user: userData,
+            token,
+            isAuthenticated: true,
+            loading: false,
+            error: null,
+          });
+        } else {
+          // Token invalid, clear auth
+          await logout();
+        }
+      } catch (error) {
+        console.error("Error validating token:", error);
+        await logout();
       }
     } catch (error) {
       console.error("Auth initialization error:", error);
@@ -74,6 +86,7 @@ export const useAuth = () => {
         token: null,
         isAuthenticated: false,
         loading: false,
+        error: "Failed to initialize authentication",
       });
     }
   }, []);
@@ -81,24 +94,37 @@ export const useAuth = () => {
   /**
    * Handle successful login
    */
-  const successLogin = async (user: User, token: string) => {
+  const successLogin = async (userData: User, token: string) => {
     try {
-      // Use server utils to set cookies
-      const success = AuthServerUtils.setAuthCookies(user, token);
-      
-      if (success) {
-        setAuthState({
-          user,
-          token,
-          isAuthenticated: true,
-          loading: false,
-        });
-        return { success: true };
-      } else {
-        return { success: false, message: "Failed to store authentication" };
-      }
+      // Store token in cookies
+      CookieHelper.set({
+        key: "token",
+        value: token,
+        expires: 30 * 24 * 60 * 60, // 30 days
+      });
+
+      // Store user in cookies
+      CookieHelper.set({
+        key: "user",
+        value: JSON.stringify(userData),
+        expires: 30 * 24 * 60 * 60,
+      });
+
+      setAuthState({
+        user: userData,
+        token,
+        isAuthenticated: true,
+        loading: false,
+        error: null,
+      });
+
+      return { success: true };
     } catch (error: any) {
-      setAuthState((prev) => ({ ...prev, loading: false }));
+      setAuthState((prev) => ({
+        ...prev,
+        loading: false,
+        error: error.message || "An error occurred during login",
+      }));
       console.error("Login error:", error);
       return {
         success: false,
@@ -112,8 +138,14 @@ export const useAuth = () => {
    */
   const logout = async () => {
     try {
-      // Use server utils to clear cookies
-      AuthServerUtils.clearAuthCookies();
+      // Call logout service
+      await UserService.logout();
+    } catch (error) {
+      console.error("Logout service error:", error);
+    } finally {
+      // Clear cookies
+      CookieHelper.destroy({ key: "token" });
+      CookieHelper.destroy({ key: "user" });
 
       // Clear state
       setAuthState({
@@ -121,14 +153,13 @@ export const useAuth = () => {
         token: null,
         isAuthenticated: false,
         loading: false,
+        error: null,
       });
 
       // Redirect to home page
       if (typeof window !== "undefined") {
-        window.location.href = "/";
+        router.push("/");
       }
-    } catch (error) {
-      console.error("Logout error:", error);
     }
   };
 
@@ -145,12 +176,16 @@ export const useAuth = () => {
       });
 
       // Update state
-      setAuthState(prev => ({
+      setAuthState((prev) => ({
         ...prev,
         user: updatedUser,
       }));
     } catch (error) {
       console.error("Error updating user state:", error);
+      setAuthState((prev) => ({
+        ...prev,
+        error: "Failed to update user state",
+      }));
     }
   };
 
@@ -159,13 +194,19 @@ export const useAuth = () => {
    */
   const refreshUser = async () => {
     try {
-      if (!authState.token) return { success: false, message: "No token" };
+      if (!authState.token) {
+        const token = CookieHelper.get({ key: "token" });
+        if (!token) {
+          return { success: false, message: "No token" };
+        }
+      }
 
       const response = await UserService.getUserProfile();
 
-      if (response.success && response.data) {
-        updateUserState(response.data);
-        return { success: true, data: response.data };
+      if (response.data && !response.data.error) {
+        const userData = response.data.data || response.data;
+        updateUserState(userData);
+        return { success: true, data: userData };
       } else {
         // If profile fetch fails, token might be invalid
         await logout();
@@ -173,6 +214,10 @@ export const useAuth = () => {
       }
     } catch (error: any) {
       console.error("User refresh error:", error);
+      setAuthState((prev) => ({
+        ...prev,
+        error: "Failed to refresh user data",
+      }));
       await logout();
       return { success: false, message: "Session expired" };
     }
@@ -182,43 +227,27 @@ export const useAuth = () => {
    * Check if user has specific permission based on tier
    */
   const hasPermission = (requiredTier: string): boolean => {
-    return AuthServerUtils.hasPermission(requiredTier);
+    if (!authState.user) return false;
+
+    const tierLevels = {
+      free: 1,
+      premium: 2,
+      enterprise: 3,
+    };
+
+    const userLevel =
+      tierLevels[authState.user.tier as keyof typeof tierLevels] || 0;
+    const requiredLevel =
+      tierLevels[requiredTier as keyof typeof tierLevels] || 0;
+
+    return userLevel >= requiredLevel;
   };
 
   /**
-   * Get user tier information
+   * Clear any auth errors
    */
-  const getTierInfo = () => {
-    if (!authState.user) return null;
-
-    const tierInfo = {
-      'Tier 1': {
-        name: 'Basic',
-        maxCases: 5,
-        features: ['Basic case submission', 'Email support'],
-        color: 'gray',
-      },
-      'Tier 2': {
-        name: 'Standard',
-        maxCases: 25,
-        features: ['Extended forms', 'Email support', 'Document verification'],
-        color: 'blue',
-      },
-      'Tier 3': {
-        name: 'Premium',
-        maxCases: 100,
-        features: ['All forms', 'Priority support', 'Auto-escalation', 'API access'],
-        color: 'purple',
-      },
-      'Tier 4': {
-        name: 'Enterprise',
-        maxCases: -1, // Unlimited
-        features: ['Unlimited access', 'Dedicated support', 'Custom forms', 'Advanced analytics'],
-        color: 'gold',
-      },
-    };
-
-    return tierInfo[authState.user.tier as keyof typeof tierInfo] || tierInfo['Tier 1'];
+  const clearError = () => {
+    setAuthState((prev) => ({ ...prev, error: null }));
   };
 
   // Initialize auth on mount
@@ -232,15 +261,16 @@ export const useAuth = () => {
     token: authState.token,
     isAuthenticated: authState.isAuthenticated,
     loading: authState.loading,
+    error: authState.error,
 
     // Actions
     successLogin,
     logout,
     updateUserState,
     refreshUser,
+    clearError,
 
     // Utilities
     hasPermission,
-    getTierInfo,
   };
 };

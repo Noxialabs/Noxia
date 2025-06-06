@@ -23,11 +23,12 @@ export default function Login() {
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const { refreshUser } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     // Clear error when user types
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -56,7 +57,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -70,86 +71,103 @@ export default function Login() {
 
       if (response.data && !response.data.error) {
         // Store token in cookie
-        const token = response.data.token || response.data.data?.token;
+        const token = response.data.data?.token;
         if (token) {
-
           CookieHelper.set({ key: "token", value: token });
-          successLogin(response.data,token);
+          successLogin(response.data.data?.user, token);
           toast.success("Login successful!");
-          router.push("/auth/profile");
+          router.push("/dashboard");
         } else {
           toast.error("Authentication failed. No token received.");
         }
       } else {
-        toast.error(response.data?.message || "Login failed. Please check your credentials.");
+        toast.error(
+          response.data?.message ||
+            "Login failed. Please check your credentials."
+        );
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(error.response?.data?.message || "Login failed. Please check your credentials.");
+      toast.error(
+        error.response?.data?.message ||
+          "Login failed. Please check your credentials."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-   <AppLayout>
-     <div className="max-w-[500px] mx-auto mt-[50px] p-6 bg-card rounded-[12px] shadow-md mb-4">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Welcome Back</h1>
-        <p className="text-muted-foreground mt-2">Log in to your account</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-foreground">
-            Email Address
-          </label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            className={`h-12 ${errors.email ? "border-destructive" : ""}`}
-          />
-          {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+    <AppLayout>
+      <div className="max-w-[500px] mx-auto mt-[50px] p-6 bg-card rounded-[12px] shadow-md mb-4">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-semibold text-foreground">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground mt-2">Log in to your account</p>
         </div>
 
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium text-foreground">
-            Password
-          </label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Enter your password"
-            className={`h-12 ${errors.password ? "border-destructive" : ""}`}
-          />
-          {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-foreground"
+            >
+              Email Address
+            </label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Enter your email"
+              className={`h-12 ${errors.email ? "border-destructive" : ""}`}
+            />
+            {errors.email && (
+              <p className="text-sm text-destructive">{errors.email}</p>
+            )}
+          </div>
 
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="w-full h-12 text-lg font-medium"
-        >
-          {isLoading ? "Logging in..." : "Log In"}
-        </Button>
-      </form>
+          <div className="space-y-2">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-foreground"
+            >
+              Password
+            </label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Enter your password"
+              className={`h-12 ${errors.password ? "border-destructive" : ""}`}
+            />
+            {errors.password && (
+              <p className="text-sm text-destructive">{errors.password}</p>
+            )}
+          </div>
 
-      <div className="mt-6 text-center">
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 text-lg font-medium"
+          >
+            {isLoading ? "Logging in..." : "Log In"}
+          </Button>
+        </form>
+
+        {/* <div className="mt-6 text-center">
         <p className="text-muted-foreground">
           Don't have an account?{" "}
           <Link href="/auth/register" className="text-primary font-medium hover:underline">
             Register
           </Link>
         </p>
+      </div> */}
       </div>
-    </div>
-   </AppLayout>
+    </AppLayout>
   );
 }

@@ -2,11 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function PublicNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   const navigateToSection = (sectionId: string) => {
@@ -49,18 +50,34 @@ export default function PublicNavbar() {
               </button>
             ))}
             
-            <Link 
-              href="/auth/login" 
-              className="text-blue-600 hover:text-blue-700 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg hover:bg-blue-50 ml-4"
-            >
-              Login
-            </Link>
-            <Link 
-              href="/auth/register" 
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Get Started
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3 ml-4">
+                <span className="text-sm text-gray-600">
+                  Welcome, {user?.email?.split('@')[0]}
+                </span>
+                <Link 
+                  href="/dashboard" 
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Link 
+                  href="/auth/login" 
+                  className="text-blue-600 hover:text-blue-700 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg hover:bg-blue-50 ml-4"
+                >
+                  Login
+                </Link>
+                <Link 
+                  href="/auth/register" 
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -105,20 +122,38 @@ export default function PublicNavbar() {
                 {item.label}
               </button>
             ))}
-            <Link 
-              href="/auth/login" 
-              className="block px-3 py-2 text-base font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Login
-            </Link>
-            <Link 
-              href="/auth/register" 
-              className="block px-3 py-2 text-base font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-center mt-2"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Get Started
-            </Link>
+            
+            {isAuthenticated ? (
+              <div className="pt-2 border-t border-gray-200">
+                <div className="px-3 py-2 text-sm text-gray-600">
+                  Welcome, {user?.email?.split('@')[0]}
+                </div>
+                <Link 
+                  href="/dashboard" 
+                  className="block px-3 py-2 text-base font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-center mt-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Link 
+                  href="/auth/login" 
+                  className="block px-3 py-2 text-base font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link 
+                  href="/auth/register" 
+                  className="block px-3 py-2 text-base font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-center mt-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
