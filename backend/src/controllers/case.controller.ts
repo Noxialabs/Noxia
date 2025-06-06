@@ -10,6 +10,7 @@ import {
   PaginatedResponse,
   Case,
   CaseSubmissionRequest,
+  DashboardFilters,
 } from "../types";
 import { logger } from "../utils/logger.utils";
 import { v4 as uuidv4 } from "uuid";
@@ -190,6 +191,25 @@ export class CaseController {
       data: stats,
     } as APIResponse);
   });
+
+  getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).userId;
+    const { dateRange, startDate, endDate, status, urgencyLevel } = req.query;
+    console.log("Date Range: ", dateRange);
+    const stats = await this.caseService.getDashboardStats(userId, {
+      dateRange,
+      startDate,
+      endDate,
+      status,
+      urgencyLevel,
+    } as DashboardFilters);
+
+    res.json({
+      success: true,
+      data: stats,
+    } as APIResponse);
+  });
+
   escalateCase = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const caseId = req.params.id;
@@ -325,4 +345,3 @@ export class CaseController {
     return "Low";
   }
 }
-

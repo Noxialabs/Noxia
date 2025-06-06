@@ -1,5 +1,5 @@
 import { query } from "../database/connection";
-import { Case, EscalationAnalysis } from "../types";
+import { Case, DashboardFilters, EscalationAnalysis } from "../types";
 import { logger } from "../utils/logger.utils";
 import { v4 as uuidv4 } from "uuid";
 import { AIService } from "./ai.service";
@@ -276,12 +276,446 @@ export class CaseService {
         AVG(ai_confidence) as avg_confidence,
         AVG(urgency_score) as avg_urgency
       FROM cases 
-      WHERE user_id = $1
-    `,
-      [userId]
+    `
     );
 
     return result.rows[0];
+  }
+
+  async getDashboardStats(
+    userId: string,
+    filters: DashboardFilters = {}
+  ): Promise<any> {
+    const {
+      dateRange = "30d",
+      startDate,
+      endDate,
+      status,
+      urgencyLevel,
+    } = filters;
+
+    // Define intervals mapping at the top of the function so it's accessible everywhere
+    const intervals: Record<string, string> = {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days",
+      "1y": "1 year",
+    };
+
+    // Build date filter condition
+    let dateCondition = "";
+    if (startDate && endDate) {
+      dateCondition = `AND submission_date BETWEEN '${startDate}' AND '${endDate}'`;
+    } else {
+      dateCondition = `AND submission_date >= NOW() - INTERVAL '${intervals[dateRange]}'`;
+    }
+
+    // Build additional filters
+    let statusCondition = "";
+    if (status && status.length > 0) {
+      const statusList = status.map((s) => `'${s}'`).join(",");
+      statusCondition = `AND status IN (${statusList})`;
+    }
+
+    let urgencyCondition = "";
+    if (urgencyLevel && urgencyLevel.length > 0) {
+      const urgencyList = urgencyLevel.map((u) => `'${u}'`).join(",");
+      urgencyCondition = `AND escalation_level IN (${urgencyList})`;
+    }
+
+    // Main stats query
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total_cases,
+        COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_cases,
+        COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress_cases,
+        COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_cases,
+        COUNT(CASE WHEN status = 'Escalated' THEN 1 END) as escalated_cases,
+        COUNT(CASE WHEN escalation_level = 'Urgent' THEN 1 END) as urgent_cases,
+        COUNT(CASE WHEN status = 'Resolved' THEN 1 END) as resolved_cases,
+        AVG(CASE WHEN ai_confidence IS NOT NULL THEN ai_confidence END) as avg_confidence,
+        AVG(CASE WHEN urgency_score IS NOT NULL THEN urgency_score END) as avg_urgency,
+        
+        -- Previous period comparison (for trend calculation)
+        (SELECT COUNT(*) FROM cases 
+         WHERE submission_date >= NOW() - INTERVAL '${intervals[dateRange]}' * 2 
+         AND submission_date < NOW() - INTERVAL '${intervals[dateRange]}'
+         ${statusCondition} ${urgencyCondition}) as prev_period_total,
+         
+        -- Recent activity (last 7 days)
+        COUNT(CASE WHEN submission_date >= NOW() - INTERVAL '7 days' THEN 1 END) as recent_cases
+        
+      FROM cases 
+      WHERE 1=1 ${dateCondition} ${statusCondition} ${urgencyCondition}
+    `;
+
+    const stats = await query(statsQuery);
+    const mainStats = stats.rows[0];
+
+    // Get trend data for charts
+    const trendData = await this.getCaseTrendData(userId, filters);
+
+    // Get status distribution
+    const statusDistribution = await this.getStatusDistribution(
+      userId,
+      filters
+    );
+
+    // Get recent activity
+    const recentActivity = await this.getRecentActivity(userId, filters);
+
+    // Get priority distribution
+    const priorityDistribution = await this.getPriorityDistribution(
+      userId,
+      filters
+    );
+
+    // Get monthly trends
+    const monthlyTrends = await this.getMonthlyTrends(userId, filters);
+
+    // Calculate percentage changes
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
+    const totalChange = calculateChange(
+      parseInt(mainStats.total_cases),
+      parseInt(mainStats.prev_period_total || "0")
+    );
+
+    return {
+      stats: {
+        total_cases: mainStats.total_cases,
+        pending_cases: mainStats.pending_cases,
+        in_progress_cases: mainStats.in_progress_cases,
+        completed_cases: mainStats.completed_cases,
+        escalated_cases: mainStats.escalated_cases,
+        urgent_cases: mainStats.urgent_cases,
+        resolved_cases: mainStats.resolved_cases,
+        recent_cases: mainStats.recent_cases,
+        avg_confidence: mainStats.avg_confidence
+          ? parseFloat(mainStats.avg_confidence).toFixed(1)
+          : null,
+        avg_urgency: mainStats.avg_urgency
+          ? parseFloat(mainStats.avg_urgency).toFixed(1)
+          : null,
+        total_change: totalChange,
+      },
+
+      trendData,
+      statusDistribution,
+      priorityDistribution,
+      monthlyTrends,
+      recentActivity,
+      filters: {
+        dateRange,
+        startDate,
+        endDate,
+        status,
+        urgencyLevel,
+      },
+    };
+  }
+
+  /**
+   * Get daily trend data for line charts
+   */
+  async getCaseTrendData(
+    userId: string,
+    filters: DashboardFilters
+  ): Promise<any[]> {
+    const { dateRange = "30d" } = filters;
+
+    const intervals = {
+      "7d": { days: 7, groupBy: "DATE(submission_date)", format: "Mon" },
+      "30d": { days: 30, groupBy: "DATE(submission_date)", format: "DD/MM" },
+      "90d": {
+        days: 90,
+        groupBy: "DATE_TRUNC('week', submission_date)",
+        format: "Week",
+      },
+      "1y": {
+        days: 365,
+        groupBy: "DATE_TRUNC('month', submission_date)",
+        format: "Month",
+      },
+    };
+
+    const config = intervals[dateRange];
+
+    const trendQuery = `
+      SELECT 
+        ${config.groupBy} as date_group,
+        COUNT(*) as total_cases,
+        COUNT(CASE WHEN status = 'Completed' OR status = 'Resolved' THEN 1 END) as resolved_cases,
+        COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_cases,
+        COUNT(CASE WHEN escalation_level = 'Urgent' THEN 1 END) as urgent_cases
+      FROM cases 
+      WHERE submission_date >= NOW() - INTERVAL '${config.days} days'
+      GROUP BY ${config.groupBy}
+      ORDER BY date_group
+    `;
+
+    const result = await query(trendQuery);
+
+    return result.rows.map((row, index) => ({
+      name:
+        dateRange === "7d"
+          ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][index] ||
+            `Day ${index + 1}`
+          : dateRange === "30d"
+          ? new Date(row.date_group).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            })
+          : new Date(row.date_group).toLocaleDateString("en-US", {
+              month: "short",
+            }),
+      cases: parseInt(row.total_cases),
+      resolved: parseInt(row.resolved_cases),
+      pending: parseInt(row.pending_cases),
+      urgent: parseInt(row.urgent_cases),
+      date: row.date_group,
+    }));
+  }
+
+  /**
+   * Get status distribution for pie charts
+   */
+  async getStatusDistribution(
+    userId: string,
+    filters: DashboardFilters
+  ): Promise<any[]> {
+    const { dateRange = "30d" } = filters;
+
+    const query_text = `
+      SELECT 
+        status,
+        COUNT(*) as count,
+        ROUND((COUNT(*) * 100.0 / SUM(COUNT(*)) OVER()), 1) as percentage
+      FROM cases 
+      WHERE submission_date >= NOW() - INTERVAL '${
+        dateRange === "7d"
+          ? "7"
+          : dateRange === "30d"
+          ? "30"
+          : dateRange === "90d"
+          ? "90"
+          : "365"
+      } days'
+      GROUP BY status
+      ORDER BY count DESC
+    `;
+
+    const result = await query(query_text);
+
+    const colors = {
+      Pending: "#f59e0b",
+      "In Progress": "#3b82f6",
+      Completed: "#10b981",
+      Escalated: "#ef4444",
+      Resolved: "#059669",
+      Cancelled: "#6b7280",
+    };
+
+    return result.rows.map((row) => ({
+      name: row.status,
+      value: parseInt(row.count),
+      percentage: parseFloat(row.percentage),
+      color: colors[row.status] || "#6b7280",
+    }));
+  }
+
+  /**
+   * Get priority/urgency distribution
+   */
+  async getPriorityDistribution(
+    userId: string,
+    filters: DashboardFilters
+  ): Promise<any[]> {
+    const { dateRange = "30d" } = filters;
+
+    // Method 1: Include the CASE expression in GROUP BY
+    const query_text = `
+    SELECT 
+      CASE 
+        WHEN urgency_score >= 8 THEN 'Critical'
+        WHEN urgency_score >= 6 THEN 'High'
+        WHEN urgency_score >= 4 THEN 'Medium'
+        ELSE 'Low'
+      END as priority,
+      COUNT(*) as count
+    FROM cases 
+    WHERE submission_date >= NOW() - INTERVAL '${
+      dateRange === "7d"
+        ? "7"
+        : dateRange === "30d"
+        ? "30"
+        : dateRange === "90d"
+        ? "90"
+        : "365"
+    } days'
+    AND urgency_score IS NOT NULL
+    GROUP BY 
+      CASE 
+        WHEN urgency_score >= 8 THEN 'Critical'
+        WHEN urgency_score >= 6 THEN 'High'
+        WHEN urgency_score >= 4 THEN 'Medium'
+        ELSE 'Low'
+      END
+    ORDER BY 
+      CASE 
+        CASE 
+          WHEN urgency_score >= 8 THEN 'Critical'
+          WHEN urgency_score >= 6 THEN 'High'
+          WHEN urgency_score >= 4 THEN 'Medium'
+          ELSE 'Low'
+        END
+        WHEN 'Critical' THEN 1 
+        WHEN 'High' THEN 2 
+        WHEN 'Medium' THEN 3 
+        WHEN 'Low' THEN 4 
+      END
+  `;
+
+    const result = await query(query_text);
+
+    const colors = {
+      Critical: "#dc2626",
+      High: "#ea580c",
+      Medium: "#d97706",
+      Low: "#65a30d",
+    };
+
+    return result.rows.map((row) => ({
+      name: row.priority,
+      value: parseInt(row.count),
+      color: colors[row.priority],
+    }));
+  }
+
+  /**
+   * Get monthly trends for the year
+   */
+  async getMonthlyTrends(
+    userId: string,
+    filters: DashboardFilters
+  ): Promise<any[]> {
+    const query_text = `
+      SELECT 
+        DATE_TRUNC('month', submission_date) as month,
+        COUNT(*) as total_cases,
+        COUNT(CASE WHEN status = 'Completed' OR status = 'Resolved' THEN 1 END) as resolved_cases,
+        AVG(CASE WHEN ai_confidence IS NOT NULL THEN ai_confidence END) as avg_confidence
+      FROM cases 
+      WHERE submission_date >= NOW() - INTERVAL '12 months'
+      GROUP BY DATE_TRUNC('month', submission_date)
+      ORDER BY month
+    `;
+
+    const result = await query(query_text);
+
+    return result.rows.map((row) => ({
+      month: new Date(row.month).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      }),
+      total_cases: parseInt(row.total_cases),
+      resolved_cases: parseInt(row.resolved_cases),
+      avg_confidence: row.avg_confidence
+        ? parseFloat(row.avg_confidence).toFixed(1)
+        : null,
+      resolution_rate:
+        row.total_cases > 0
+          ? Math.round((row.resolved_cases / row.total_cases) * 100)
+          : 0,
+    }));
+  }
+
+  /**
+   * Get recent activity for activity feed
+   */
+  async getRecentActivity(
+    userId: string,
+    filters: DashboardFilters
+  ): Promise<any[]> {
+    const query_text = `
+      SELECT 
+        id,
+        case_ref,
+        title,
+        status,
+        escalation_level,
+        submission_date,
+        updated_at,
+        CASE 
+          WHEN updated_at > submission_date THEN 'updated'
+          ELSE 'submitted'
+        END as action_type
+      FROM cases 
+      WHERE submission_date >= NOW() - INTERVAL '7 days'
+      ORDER BY COALESCE(updated_at, submission_date) DESC
+      LIMIT 10
+    `;
+
+    const result = await query(query_text);
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      case_ref: row.case_ref,
+      title: row.title,
+      status: row.status,
+      escalation_level: row.escalation_level,
+      action_type: row.action_type,
+      timestamp: row.updated_at || row.submission_date,
+      time_ago: this.getTimeAgo(
+        new Date(row.updated_at || row.submission_date)
+      ),
+    }));
+  }
+
+  /**
+   * Helper function to calculate time ago
+   */
+  private getTimeAgo(date: Date): string {
+    const now = new Date();
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInDays > 0) {
+      return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
+    } else if (diffInHours > 0) {
+      return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
+    } else {
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      return `${diffInMinutes || 1} minute${diffInMinutes > 1 ? "s" : ""} ago`;
+    }
+  }
+
+  /**
+   * Get available filter options
+   */
+  async getFilterOptions(userId: string): Promise<any> {
+    const statusQuery = `SELECT DISTINCT status FROM cases WHERE status IS NOT NULL ORDER BY status`;
+    const urgencyQuery = `SELECT DISTINCT escalation_level FROM cases WHERE escalation_level IS NOT NULL ORDER BY escalation_level`;
+
+    const [statusResult, urgencyResult] = await Promise.all([
+      query(statusQuery),
+      query(urgencyQuery),
+    ]);
+
+    return {
+      statuses: statusResult.rows.map((row) => row.status),
+      urgencyLevels: urgencyResult.rows.map((row) => row.escalation_level),
+      dateRanges: [
+        { label: "7 Days", value: "7d" },
+        { label: "30 Days", value: "30d" },
+        { label: "90 Days", value: "90d" },
+        { label: "1 Year", value: "1y" },
+      ],
+    };
   }
 
   async escalateCase(

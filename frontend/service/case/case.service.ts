@@ -1,6 +1,14 @@
 import { CookieHelper } from "../../helper/cookie.helper";
 import { Fetch } from "../../lib/Fetch";
 
+interface DashboardFilters {
+  dateRange?: "7d" | "30d" | "90d" | "1y" | string;
+  status?: string[];
+  urgencyLevel?: string[];
+  startDate?: string;
+  endDate?: string;
+}
+
 interface CaseUpdateData {
   clientName?: string;
   description?: string;
@@ -100,6 +108,38 @@ export const CaseService = {
     });
   },
 
+  getDashboardStats: async (filters: DashboardFilters = {}) => {
+    const queryParams = new URLSearchParams();
+
+    // Add filters to query params
+    if (filters.dateRange) {
+      queryParams.append("dateRange", filters.dateRange);
+    }
+    if (filters.startDate) {
+      queryParams.append("startDate", filters.startDate);
+    }
+    if (filters.endDate) {
+      queryParams.append("endDate", filters.endDate);
+    }
+    if (filters.status && filters.status.length > 0) {
+      filters.status.forEach((status) =>
+        queryParams.append("status[]", status)
+      );
+    }
+    if (filters.urgencyLevel && filters.urgencyLevel.length > 0) {
+      filters.urgencyLevel.forEach((level) =>
+        queryParams.append("urgencyLevel[]", level)
+      );
+    }
+
+    const url = `/cases/dashboard-stats${
+      queryParams.toString() ? "?" + queryParams.toString() : ""
+    }`;
+
+    return await Fetch.get(url, {
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+    });
+  },
   // Get case statistics
   getCaseStats: async () => {
     return await Fetch.get("/cases/stats", {

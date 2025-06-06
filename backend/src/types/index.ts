@@ -267,3 +267,13 @@ export interface SystemEvent {
   processed: boolean;
   createdAt: Date;
 }
+
+
+
+export interface DashboardFilters {
+  dateRange?: '7d' | '30d' | '90d' | '1y' | 'custom';
+  startDate?: string;
+  endDate?: string;
+  status?: string[];
+  urgencyLevel?: string[];
+}

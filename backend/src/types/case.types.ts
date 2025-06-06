@@ -170,3 +170,4 @@ export interface CaseAssignment {
   status: "Active" | "Completed" | "Transferred";
   notes?: string;
 }
+

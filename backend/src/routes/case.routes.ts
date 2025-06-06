@@ -81,6 +81,12 @@ router.get(
   adminMiddleware,
   caseController.getCaseStats
 );
+router.get(
+  "/dashboard-stats",
+  authMiddleware,
+  adminMiddleware,
+  caseController.getDashboardStats
+);
 
 router.get("/:id", authMiddleware, adminMiddleware, caseController.getCaseById);
 
