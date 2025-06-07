@@ -14,7 +14,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const menuItems = [
     { icon: '🏠', label: 'Dashboard', href: '/dashboard' },
-    { icon: '📋', label: 'Submit Case', href: '/case-submission-form' },
+    { icon: '📋', label: 'Submit New Case', href: '/case-submission-form' },
     { icon: '📁', label: 'All Cases', href: '/cases' },
    /*  { icon: '📊', label: 'Analytics', href: '/analytics' },
     { icon: '📄', label: 'Documents', href: '/documents' },

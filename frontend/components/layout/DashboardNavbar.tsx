@@ -65,9 +65,7 @@ export default function DashboardNavbar({ user }: DashboardNavbarProps) {
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-sm font-medium text-gray-700">{user?.email}</p>
-              <p className="text-xs text-gray-500 capitalize">
-                {user?.tier || "Free"} Plan
-              </p>
+              
             </div>
             <svg
               className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${

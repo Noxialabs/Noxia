@@ -133,11 +133,11 @@ export const EscalateCaseModal = ({
       }
     } catch (error) {
       console.error("Escalation error:", error);
-      let message = "Failed to change password";
-      if (error.message === "Current password is incorrect") {
-        message = "Current password is incorrect";
+      let message = "Failed to escalate the case";
+      if (error.message) {
+        message = error.message;
       } else if (error.response?.data?.message) {
-        message = "Current password is incorrect";
+        message = error.response?.data?.message;
       }
       toast.error(message);
       setStep("form");
