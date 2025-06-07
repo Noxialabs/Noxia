@@ -26,7 +26,8 @@ interface CaseUpdateData {
     | "Legal - Employment"
     | "Legal - Housing"
     | "Legal - Immigration"
-    | "Other";
+    | "Other"
+    | string;
   assignedTo?: string;
   closureReason?: string;
   description?: string;

@@ -37,8 +37,8 @@ interface CaseData {
   description: string;
   jurisdiction: string;
   issueCategory: string;
-  status: string;
-  priority: string;
+  status: "Pending" | "In Progress" | "Completed" | "Escalated" | "Closed";
+  priority: "Low" | "Normal" | "High" | "Critical";
   assignedTo?: string;
   closureReason?: string;
   submissionDate: string;
@@ -217,7 +217,7 @@ export default function CaseEditPage() {
       Object.keys(formData).forEach((key) => {
         const typedKey = key as keyof CaseUpdateData;
         if (formData[typedKey] !== originalData?.[typedKey]) {
-          changedData[typedKey] = formData[typedKey];
+          changedData[typedKey as string] = formData[typedKey];
         }
       });
 
@@ -585,7 +585,6 @@ export default function CaseEditPage() {
                         : "border-gray-300"
                     }`}
                   />
-                
                 </div>
 
                 {formData.status === "Closed" && (
