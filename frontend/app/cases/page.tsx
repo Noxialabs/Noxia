@@ -31,8 +31,10 @@ import {
   DeleteCaseModal,
   useDeleteCase,
 } from "@/components/cases/DeleteCaseModal";
+import { useEscalateCase } from "@/components/cases/EscalateCaseModal";
 
 export default function CasesListing() {
+  const { openEscalationModal, EscalationModal } = useEscalateCase();
   const router = useRouter();
   const { user } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
@@ -135,8 +137,12 @@ export default function CasesListing() {
         break;
 
       case "escalate":
-        // Handle escalation logic
-        // handleEscalation(caseId);
+        openEscalationModal({
+          id: _case.id,
+          title: _case.title,
+          caseRef: _case.caseRef,
+          currentPriority: _case.priority,
+        });
         break;
 
       case "delete":
@@ -314,14 +320,18 @@ export default function CasesListing() {
   return (
     <AppLayout>
       {selectedCase && (
-        <DeleteCaseModal
-          isOpen={isModalOpen}
-          onClose={closeDeleteModal}
-          onConfirm={handleDeleteConfirm}
-          caseTitle={selectedCase.title}
-          caseRef={selectedCase.caseRef}
-        />
+        <>
+          <DeleteCaseModal
+            isOpen={isModalOpen}
+            onClose={closeDeleteModal}
+            onConfirm={handleDeleteConfirm}
+            caseTitle={selectedCase.title}
+            caseRef={selectedCase.caseRef}
+          />
+          <EscalationModal />
+        </>
       )}
+
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white">
@@ -334,7 +344,7 @@ export default function CasesListing() {
             </div>
             <div className="mt-4 md:mt-0 flex space-x-4">
               <button
-                onClick={() => setRefreshing(true)}
+                onClick={() => fetchCases()}
                 disabled={refreshing}
                 className="bg-white/20 backdrop-blur-md rounded-lg px-4 py-2 hover:bg-white/30 transition-colors flex items-center space-x-2"
               >
@@ -344,7 +354,7 @@ export default function CasesListing() {
                 <span className="text-sm font-medium">Refresh</span>
               </button>
               <Link
-                href="/cases/case-submission-form"
+                href="/case-submission-form"
                 className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center space-x-2"
               >
                 <Plus className="w-4 h-4" />

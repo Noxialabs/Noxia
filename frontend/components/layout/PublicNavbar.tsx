@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
 
 export default function PublicNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -11,11 +11,14 @@ export default function PublicNavbar() {
   const router = useRouter();
 
   const navigateToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-    setIsMenuOpen(false);
+    router.push(`/#${sectionId}`);
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+      setIsMenuOpen(false);
+    }, 500);
   };
 
   return (
@@ -37,9 +40,9 @@ export default function PublicNavbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
             {[
-              { label: 'Features', id: 'features' },
-              { label: 'About', id: 'about' },
-              { label: 'Contact', id: 'contact' }
+              { label: "Features", id: "features" },
+              { label: "About", id: "about" },
+              { label: "Contact", id: "contact" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -49,14 +52,14 @@ export default function PublicNavbar() {
                 {item.label}
               </button>
             ))}
-            
+
             {isAuthenticated ? (
               <div className="flex items-center space-x-3 ml-4">
                 <span className="text-sm text-gray-600">
-                  Welcome, {user?.email?.split('@')[0]}
+                  Welcome, {user?.email?.split("@")[0]}
                 </span>
-                <Link 
-                  href="/dashboard" 
+                <Link
+                  href="/dashboard"
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   Go to Dashboard
@@ -64,14 +67,14 @@ export default function PublicNavbar() {
               </div>
             ) : (
               <>
-                <Link 
-                  href="/auth/login" 
+                <Link
+                  href="/auth/login"
                   className="text-blue-600 hover:text-blue-700 px-4 py-2 text-sm font-medium transition-all duration-200 rounded-lg hover:bg-blue-50 ml-4"
                 >
                   Login
                 </Link>
-                <Link 
-                  href="/auth/register" 
+                <Link
+                  href="/case-submission-form"
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   Get Started
@@ -87,17 +90,23 @@ export default function PublicNavbar() {
               className="text-gray-600 hover:text-gray-900 focus:outline-none p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Toggle menu"
             >
-              <svg 
-                className={`h-6 w-6 transition-transform duration-200 ${isMenuOpen ? 'rotate-90' : ''}`} 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                className={`h-6 w-6 transition-transform duration-200 ${
+                  isMenuOpen ? "rotate-90" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={
+                    isMenuOpen
+                      ? "M6 18L18 6M6 6l12 12"
+                      : "M4 6h16M4 12h16M4 18h16"
+                  }
                 />
               </svg>
             </button>
@@ -105,14 +114,16 @@ export default function PublicNavbar() {
         </div>
 
         {/* Mobile Navigation */}
-        <div className={`md:hidden transition-all duration-300 overflow-hidden ${
-          isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-        }`}>
+        <div
+          className={`md:hidden transition-all duration-300 overflow-hidden ${
+            isMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
           <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-200 bg-white">
             {[
-              { label: 'Features', id: 'features' },
-              { label: 'About', id: 'about' },
-              { label: 'Contact', id: 'contact' }
+              { label: "Features", id: "features" },
+              { label: "About", id: "about" },
+              { label: "Contact", id: "contact" },
             ].map((item) => (
               <button
                 key={item.id}
@@ -122,14 +133,14 @@ export default function PublicNavbar() {
                 {item.label}
               </button>
             ))}
-            
+
             {isAuthenticated ? (
               <div className="pt-2 border-t border-gray-200">
                 <div className="px-3 py-2 text-sm text-gray-600">
-                  Welcome, {user?.email?.split('@')[0]}
+                  Welcome, {user?.email?.split("@")[0]}
                 </div>
-                <Link 
-                  href="/dashboard" 
+                <Link
+                  href="/dashboard"
                   className="block px-3 py-2 text-base font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-center mt-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -138,15 +149,15 @@ export default function PublicNavbar() {
               </div>
             ) : (
               <>
-                <Link 
-                  href="/auth/login" 
+                <Link
+                  href="/auth/login"
                   className="block px-3 py-2 text-base font-medium text-blue-600 hover:bg-blue-50 rounded-lg"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login
                 </Link>
-                <Link 
-                  href="/auth/register" 
+                <Link
+                  href="/case-submission-form"
                   className="block px-3 py-2 text-base font-medium bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-center mt-2"
                   onClick={() => setIsMenuOpen(false)}
                 >

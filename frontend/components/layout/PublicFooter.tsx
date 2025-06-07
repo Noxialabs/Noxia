@@ -32,10 +32,10 @@ export default function PublicFooter() {
             <h3 className="text-lg font-semibold mb-4 text-white">Quick Links</h3>
             <ul className="space-y-3">
               {[
-                { label: 'About Us', href: '/about' },
-                { label: 'How It Works', href: '/how-it-works' },
-                { label: 'Privacy Policy', href: '/privacy' },
-                { label: 'Terms of Service', href: '/terms' }
+                { label: 'About Us', href: '/#about' },
+                { label: 'How It Works', href: '/#features' },
+                /* { label: 'Privacy Policy', href: '/privacy' },
+                { label: 'Terms of Service', href: '/terms' } */
               ].map((link) => (
                 <li key={link.href}>
                   <Link 
@@ -54,10 +54,8 @@ export default function PublicFooter() {
             <h3 className="text-lg font-semibold mb-4 text-white">Support</h3>
             <ul className="space-y-3">
               {[
-                { label: 'Help Center', href: '/help' },
-                { label: 'Contact Us', href: '/contact' },
-                { label: 'Emergency Resources', href: '/emergency' },
-                { label: 'Legal Aid', href: '/legal-aid' }
+                { label: 'Contact Us', href: '/#contact' },
+                { label: 'Emergency Resources', href: '/#' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link 

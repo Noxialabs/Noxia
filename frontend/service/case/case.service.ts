@@ -47,9 +47,7 @@ interface CaseFilters {
 
 interface EscalationData {
   reason: string;
-  escalationLevel: "Priority" | "Urgent";
-  assignedTo?: string;
-  notes?: string;
+  priority: "High" | "Critical";
 }
 
 function getAuthHeaders(extraHeaders: Record<string, string> = {}) {

@@ -36,6 +36,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     pathname.startsWith(route)
   );
 
+  console.log("Use Dashboard: ",shouldUseDashboardLayout)
   // Check if current path is auth route
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
 
