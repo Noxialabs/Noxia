@@ -133,7 +133,13 @@ export const EscalateCaseModal = ({
       }
     } catch (error) {
       console.error("Escalation error:", error);
-      toast.error("Failed to escalate case");
+      let message = "Failed to change password";
+      if (error.message === "Current password is incorrect") {
+        message = "Current password is incorrect";
+      } else if (error.response?.data?.message) {
+        message = "Current password is incorrect";
+      }
+      toast.error(message);
       setStep("form");
     } finally {
       setIsSubmitting(false);
@@ -173,7 +179,7 @@ export const EscalateCaseModal = ({
     <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {/* Overlay */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+        <div className="fixed inset-0 bg-transparent transition-opacity" />
 
         {/* Center the modal */}
         <span

@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useChangePassword } from "../users/ChangePasswordModal";
 
 interface DashboardNavbarProps {
   user: any;
@@ -12,6 +13,7 @@ export default function DashboardNavbar({ user }: DashboardNavbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { logout } = useAuth();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { openPasswordModal, PasswordModal } = useChangePassword();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -32,8 +34,12 @@ export default function DashboardNavbar({ user }: DashboardNavbarProps) {
     setIsProfileOpen(false);
   };
 
+  const onClickChangePassword = () => {
+    openPasswordModal();
+  };
   return (
     <nav className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 px-6 py-4 sticky top-0 z-20">
+      <PasswordModal />
       <div className="flex justify-between items-center">
         {/* Page Title */}
         <div>
@@ -91,15 +97,14 @@ export default function DashboardNavbar({ user }: DashboardNavbarProps) {
                 </p>
               </div>
 
-              <Link
-                href="/profile"
+              <button
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                onClick={() => setIsProfileOpen(false)}
+                onClick={() => onClickChangePassword()}
               >
-                <span className="mr-3">👤</span>
-                Profile Settings
-              </Link>
-              <Link
+                <span className="mr-3">🔐</span>
+                Change Password
+              </button>
+              {/* <Link
                 href="/settings"
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => setIsProfileOpen(false)}
@@ -107,7 +112,7 @@ export default function DashboardNavbar({ user }: DashboardNavbarProps) {
                 <span className="mr-3">⚙️</span>
                 Account Settings
               </Link>
-              <Link
+               <Link
                 href="/billing"
                 className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => setIsProfileOpen(false)}
@@ -115,7 +120,7 @@ export default function DashboardNavbar({ user }: DashboardNavbarProps) {
                 <span className="mr-3">💳</span>
                 Billing & Plans
               </Link>
-
+ */}
               <hr className="my-2" />
 
               <button

@@ -55,8 +55,13 @@ export const DeleteCaseModal = ({
       setConfirmText("");
       toast.success("Case deleted successfully");
     } catch (error) {
-      console.error("Delete error:", error);
-      toast.error("Failed to delete case");
+      let message = "Failed to change password";
+      if (error.message === "Current password is incorrect") {
+        message = "Current password is incorrect";
+      } else if (error.response?.data?.message) {
+        message = "Current password is incorrect";
+      }
+      toast.error(message);
     } finally {
       setIsDeleting(false);
     }
@@ -84,7 +89,7 @@ export const DeleteCaseModal = ({
         onClick={handleOverlayClick}
       >
         {/* Overlay */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" />
+        <div className="fixed inset-0 bg-transparent transition-opacity" />
 
         {/* Center the modal */}
         <span
