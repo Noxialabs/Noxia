@@ -28,8 +28,8 @@ export default function PublicNavbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center group">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
-                <span className="text-white font-bold text-lg">999</span>
+              <div className="w-12 h-12 bg-gradient-to-br from-white-900 to-blue-200 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <img src="/logoImg.png" alt="Logo"className="w-10 h-10"/>
               </div>
               <span className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 999Plus

@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -13,24 +13,26 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
 
   const menuItems = [
-    { icon: '🏠', label: 'Dashboard', href: '/dashboard' },
-    { icon: '📋', label: 'Submit New Case', href: '/case-submission-form' },
-    { icon: '📁', label: 'All Cases', href: '/cases' },
-   /*  { icon: '📊', label: 'Analytics', href: '/analytics' },
+    { icon: "🏠", label: "Dashboard", href: "/dashboard" },
+    { icon: "📋", label: "Submit New Case", href: "/case-submission-form" },
+    { icon: "📁", label: "All Cases", href: "/cases" },
+    /*  { icon: '📊', label: 'Analytics', href: '/analytics' },
     { icon: '📄', label: 'Documents', href: '/documents' },
     { icon: '🔔', label: 'Notifications', href: '/notifications' },
     { icon: '⚙️', label: 'Settings', href: '/settings' }, */
   ];
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-all duration-300 z-30 ${
-      collapsed ? 'w-16' : 'w-64'
-    }`}>
+    <div
+      className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white transition-all duration-300 z-30 ${
+        collapsed ? "w-16" : "w-64"
+      }`}
+    >
       {/* Logo Section */}
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-sm">999</span>
+          <div className="w-10 h-10 bg-gradient-to-br from-white-900 to-blue-200 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+            <img src="/logoImg.png" alt="Logo" className="w-8 h-8" />
           </div>
           {!collapsed && (
             <span className="ml-3 text-lg font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
@@ -49,9 +51,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={index}
               href={item.href}
               className={`flex items-center px-3 py-3 mb-1 rounded-xl transition-all duration-200 group ${
-                isActive 
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg' 
-                  : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                isActive
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg"
+                  : "text-gray-300 hover:bg-gray-700 hover:text-white"
               }`}
               title={collapsed ? item.label : undefined}
             >
@@ -76,13 +78,20 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           className="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-all duration-200 shadow-lg hover:shadow-xl"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          <svg 
-            className={`w-4 h-4 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className={`w-4 h-4 transition-transform duration-300 ${
+              collapsed ? "rotate-180" : ""
+            }`}
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+            />
           </svg>
         </button>
       </div>

@@ -12,8 +12,8 @@ export default function PublicFooter() {
           {/* Logo & Description */}
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">999</span>
+             <div className="w-12 h-12 bg-gradient-to-br from-blue-800 to-gray-800 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <img src="/logoImg.png" alt="Logo"className="w-10 h-10"/>
               </div>
               <span className="ml-3 text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
                 999Plus
