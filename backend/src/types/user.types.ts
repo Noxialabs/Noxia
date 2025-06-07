@@ -195,7 +195,6 @@ export interface UserProfile {
   joinedAt: string;
   casesSubmitted: number;
   casesResolved: number;
-  reputation: number;
   verified: boolean;
   lastLoginAt?: string;
 }

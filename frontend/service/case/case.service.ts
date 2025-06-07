@@ -11,12 +11,25 @@ interface DashboardFilters {
 
 interface CaseUpdateData {
   clientName?: string;
-  description?: string;
   jurisdiction?: string;
   status?: "Pending" | "In Progress" | "Completed" | "Escalated" | "Closed";
   priority?: "Low" | "Normal" | "High" | "Critical";
+  issueCategory?:
+    | "Corruption - Police"
+    | "Corruption - Government"
+    | "Corruption - Judicial"
+    | "Criminal - Assault"
+    | "Criminal - Fraud"
+    | "Criminal - Harassment"
+    | "Criminal - Murder"
+    | "Legal - Civil Rights"
+    | "Legal - Employment"
+    | "Legal - Housing"
+    | "Legal - Immigration"
+    | "Other";
   assignedTo?: string;
   closureReason?: string;
+  description?: string;
 }
 
 interface CaseFilters {

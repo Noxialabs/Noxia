@@ -1,5 +1,12 @@
 import { UserProfile } from "./user.types";
 
+// Case status types
+export type CaseStatus =
+  | "Pending"
+  | "In Progress"
+  | "Completed"
+  | "Escalated"
+  | "Closed";
 export interface Case {
   id: string;
   caseRef: string;
@@ -17,22 +24,18 @@ export interface Case {
   ethTxHash?: string;
   ceFileStatus: string;
   submissionDate: Date;
+  closedAt: Date;
+  closedBy: string;
   createdAt: Date;
   updatedAt: Date;
   attachments?: CaseAttachment[];
   metadata?: Record<string, any>;
   suggestedActions?: string[];
+  closureReason?: string;
+  assignedTo?: string;
 
   user?: UserProfile;
 }
-
-// Case status types
-export type CaseStatus =
-  | "Pending"
-  | "In Progress"
-  | "Completed"
-  | "Escalated"
-  | "Closed";
 
 // Case priority types
 export type CasePriority = "Low" | "Normal" | "High" | "Critical";

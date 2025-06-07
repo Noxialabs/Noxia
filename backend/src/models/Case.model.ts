@@ -1,6 +1,6 @@
-import { query } from '../database/connection';
-import { Case } from '../types';
-import { logger } from '../utils/logger.utils';
+import { query } from "../database/connection";
+import { Case } from "../types";
+import { logger } from "../utils/logger.utils";
 
 export class CaseModel {
   static async create(caseData: {
@@ -44,14 +44,14 @@ export class CaseModel {
         caseData.aiConfidence,
         caseData.urgencyScore,
         JSON.stringify(caseData.suggestedActions || []),
-        caseData.status || 'Pending',
-        caseData.priority || 'Normal',
+        caseData.status || "Pending",
+        caseData.priority || "Normal",
         JSON.stringify(caseData.attachments || {}),
         JSON.stringify(caseData.metadata || {}),
         now,
         now,
         now,
-        'Pending'
+        "Pending",
       ]
     );
 
@@ -59,10 +59,7 @@ export class CaseModel {
   }
 
   static async findById(id: string): Promise<Case | null> {
-    const result = await query(
-      'SELECT * FROM cases WHERE id = $1',
-      [id]
-    );
+    const result = await query("SELECT * FROM cases WHERE id = $1", [id]);
 
     return result.rows.length > 0 ? this.mapRow(result.rows[0]) : null;
   }
@@ -79,7 +76,7 @@ export class CaseModel {
     limit: number = 10
   ): Promise<{ cases: Case[]; total: number }> {
     const offset = (page - 1) * limit;
-    let whereClause = 'WHERE user_id = $1';
+    let whereClause = "WHERE user_id = $1";
     const values: any[] = [userId];
     let paramIndex = 2;
 
@@ -122,29 +119,35 @@ export class CaseModel {
     );
 
     return {
-      cases: casesResult.rows.map(row => this.mapRow(row)),
-      total: parseInt(countResult.rows[0].count)
+      cases: casesResult.rows.map((row) => this.mapRow(row)),
+      total: parseInt(countResult.rows[0].count),
     };
   }
 
   static async findByCaseRef(caseRef: string): Promise<Case | null> {
-    const result = await query(
-      'SELECT * FROM cases WHERE case_ref = $1',
-      [caseRef]
-    );
+    const result = await query("SELECT * FROM cases WHERE case_ref = $1", [
+      caseRef,
+    ]);
 
     return result.rows.length > 0 ? this.mapRow(result.rows[0]) : null;
   }
 
-  static async update(id: string, updates: Partial<Case>): Promise<Case | null> {
+  static async update(
+    id: string,
+    updates: Partial<Case>
+  ): Promise<Case | null> {
     const setClause = [];
     const values = [];
     let paramIndex = 1;
 
     for (const [key, value] of Object.entries(updates)) {
-      if (value !== undefined && key !== 'id' && key !== 'submissionDate') {
+      if (value !== undefined && key !== "id" && key !== "submissionDate") {
         const dbField = this.camelToSnake(key);
-        if (dbField === 'suggested_actions' || dbField === 'attachments' || dbField === 'metadata') {
+        if (
+          dbField === "suggested_actions" ||
+          dbField === "attachments" ||
+          dbField === "metadata"
+        ) {
           setClause.push(`${dbField} = $${paramIndex}`);
           values.push(JSON.stringify(value));
         } else {
@@ -164,7 +167,9 @@ export class CaseModel {
     values.push(id);
 
     const result = await query(
-      `UPDATE cases SET ${setClause.join(', ')} WHERE id = $${paramIndex + 1} RETURNING *`,
+      `UPDATE cases SET ${setClause.join(", ")} WHERE id = $${
+        paramIndex + 1
+      } RETURNING *`,
       values
     );
 
@@ -172,7 +177,7 @@ export class CaseModel {
   }
 
   static async delete(id: string): Promise<boolean> {
-    const result = await query('DELETE FROM cases WHERE id = $1', [id]);
+    const result = await query("DELETE FROM cases WHERE id = $1", [id]);
     return result.rowCount > 0;
   }
 
@@ -181,11 +186,11 @@ export class CaseModel {
     limit: number = 50
   ): Promise<Case[]> {
     const result = await query(
-      'SELECT * FROM cases WHERE status = $1 ORDER BY submission_date DESC LIMIT $2',
+      "SELECT * FROM cases WHERE status = $1 ORDER BY submission_date DESC LIMIT $2",
       [status, limit]
     );
 
-    return result.rows.map(row => this.mapRow(row));
+    return result.rows.map((row) => this.mapRow(row));
   }
 
   static async findUrgentCases(limit: number = 20): Promise<Case[]> {
@@ -197,7 +202,7 @@ export class CaseModel {
       [limit]
     );
 
-    return result.rows.map(row => this.mapRow(row));
+    return result.rows.map((row) => this.mapRow(row));
   }
 
   static async searchCases(
@@ -258,21 +263,22 @@ export class CaseModel {
     );
 
     return {
-      cases: casesResult.rows.map(row => this.mapRow(row)),
-      total: parseInt(countResult.rows[0].count)
+      cases: casesResult.rows.map((row) => this.mapRow(row)),
+      total: parseInt(countResult.rows[0].count),
     };
   }
 
   static async getCaseStats(userId?: string): Promise<any> {
-    let whereClause = '';
+    let whereClause = "";
     const values: any[] = [];
 
     if (userId) {
-      whereClause = 'WHERE user_id = $1';
+      whereClause = "WHERE user_id = $1";
       values.push(userId);
     }
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT 
         COUNT(*) as total_cases,
         COUNT(CASE WHEN status = 'Pending' THEN 1 END) as pending_cases,
@@ -288,15 +294,20 @@ export class CaseModel {
         AVG(ai_confidence) as avg_confidence,
         AVG(urgency_score) as avg_urgency
       FROM cases ${whereClause}
-    `, values);
+    `,
+      values
+    );
 
     // Get issue category breakdown
-    const categoryResult = await query(`
+    const categoryResult = await query(
+      `
       SELECT issue_category, COUNT(*) as count
       FROM cases ${whereClause}
       GROUP BY issue_category
       ORDER BY count DESC
-    `, values);
+    `,
+      values
+    );
 
     return {
       totalCases: parseInt(result.rows[0].total_cases),
@@ -305,25 +316,27 @@ export class CaseModel {
         inProgress: parseInt(result.rows[0].in_progress_cases),
         completed: parseInt(result.rows[0].completed_cases),
         escalated: parseInt(result.rows[0].escalated_cases),
-        closed: parseInt(result.rows[0].closed_cases)
+        closed: parseInt(result.rows[0].closed_cases),
       },
       escalationBreakdown: {
         urgent: parseInt(result.rows[0].urgent_cases),
         priority: parseInt(result.rows[0].priority_cases),
-        basic: parseInt(result.rows[0].basic_cases)
+        basic: parseInt(result.rows[0].basic_cases),
       },
       recentCases: parseInt(result.rows[0].recent_cases),
       highUrgencyCases: parseInt(result.rows[0].high_urgency_cases),
-      avgConfidence: parseFloat(result.rows[0].avg_confidence || '0'),
-      avgUrgency: parseFloat(result.rows[0].avg_urgency || '0'),
-      categoryBreakdown: categoryResult.rows.map(row => ({
+      avgConfidence: parseFloat(result.rows[0].avg_confidence || "0"),
+      avgUrgency: parseFloat(result.rows[0].avg_urgency || "0"),
+      categoryBreakdown: categoryResult.rows.map((row) => ({
         category: row.issue_category,
-        count: parseInt(row.count)
-      }))
+        count: parseInt(row.count),
+      })),
     };
   }
 
-  static async findExpiredCases(daysSinceSubmission: number = 30): Promise<Case[]> {
+  static async findExpiredCases(
+    daysSinceSubmission: number = 30
+  ): Promise<Case[]> {
     const result = await query(
       `SELECT * FROM cases 
        WHERE status IN ('Pending', 'In Progress') 
@@ -332,7 +345,7 @@ export class CaseModel {
       []
     );
 
-    return result.rows.map(row => this.mapRow(row));
+    return result.rows.map((row) => this.mapRow(row));
   }
 
   private static mapRow(row: any): Case {
@@ -353,15 +366,21 @@ export class CaseModel {
       ethTxHash: row.eth_tx_hash,
       ceFileStatus: row.ce_file_status,
       submissionDate: row.submission_date,
+      closedAt: row.closed_at,
+      closureReason: row.closure_reason,
+      assignedTo: row.assigned_to,
+      closedBy: row.closed_by,
       updatedAt: row.updated_at,
       createdAt: row.created_at,
       attachments: row.attachments ? JSON.parse(row.attachments) : null,
       metadata: row.metadata ? JSON.parse(row.metadata) : null,
-      suggestedActions: row.suggested_actions ? JSON.parse(row.suggested_actions) : []
+      suggestedActions: row.suggested_actions
+        ? JSON.parse(row.suggested_actions)
+        : [],
     };
   }
 
   private static camelToSnake(str: string): string {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 }

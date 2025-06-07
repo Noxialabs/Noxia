@@ -26,8 +26,14 @@ import {
 import { Case, CaseFilters } from "@/types/case.types";
 import { CaseService } from "@/service/case/case.service";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  DeleteCaseModal,
+  useDeleteCase,
+} from "@/components/cases/DeleteCaseModal";
 
 export default function CasesListing() {
+  const router = useRouter();
   const { user } = useAuth();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +47,6 @@ export default function CasesListing() {
     hasPrev: false,
   });
 
-  // Filter states
   const [filters, setFilters] = useState<CaseFilters>({
     page: 1,
     limit: 10,
@@ -49,6 +54,8 @@ export default function CasesListing() {
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCases, setSelectedCases] = useState<string[]>([]);
+  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
   useEffect(() => {
@@ -78,18 +85,27 @@ export default function CasesListing() {
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     const handler = setTimeout(() => {
-        setFilters((prev) => ({ ...prev, search: searchTerm, page: 1 }));
+      setFilters((prev) => ({ ...prev, search: searchTerm, page: 1 }));
     }, 750);
 
     return () => clearTimeout(handler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [searchTerm]);
+  }, [searchTerm]);
 
-const handleSearch = (term: string) => {
+  const closeDeleteModal = () => {
+    setSelectedCase(null);
+    setIsModalOpen(false);
+    fetchCases();
+  };
+  const handleDeleteConfirm = async () => {
+    console.log("Value: ");
+    await CaseService.deleteCase(selectedCase.id);
+  };
+  const handleSearch = (term: string) => {
     setSearchTerm(term);
-};
+  };
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value, page: 1 }));
@@ -101,10 +117,37 @@ const handleSearch = (term: string) => {
 
   const handleCaseAction = (
     action: "edit" | "delete" | "escalate" | "view",
-    caseId: string
+    _case: Case
   ) => {
-    console.log(`${action} case:`, caseId);
-    // Implement your action logic here
+    setSelectedCase(_case);
+    switch (action) {
+      case "view":
+        // Navigate to case details page
+        router.push(`/cases/${_case.id}/details`);
+        break;
+
+      case "edit":
+        // Navigate to edit page or open edit modal
+        router.push(`/cases/${_case.id}/edit`);
+        // OR open edit modal
+        // setIsEditModalOpen(true);
+        // setSelectedCaseId(caseId);
+        break;
+
+      case "escalate":
+        // Handle escalation logic
+        // handleEscalation(caseId);
+        break;
+
+      case "delete":
+        console.log("open delete modal");
+        setIsModalOpen(true);
+        console.log("Case: ", _case);
+        break;
+
+      default:
+        console.log(`${action} case:`, _case.id);
+    }
   };
 
   const handleBulkAction = (action: "delete" | "escalate" | "export") => {
@@ -186,7 +229,7 @@ const handleSearch = (term: string) => {
     );
   };
 
-  const ActionDropdown = ({ caseId }: { caseId: string }) => {
+  const ActionDropdown = (caseProps: Case) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -203,7 +246,7 @@ const handleSearch = (term: string) => {
             <div className="py-1">
               <button
                 onClick={() => {
-                  handleCaseAction("view", caseId);
+                  handleCaseAction("view", caseProps);
                   setIsOpen(false);
                 }}
                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -213,7 +256,7 @@ const handleSearch = (term: string) => {
               </button>
               <button
                 onClick={() => {
-                  handleCaseAction("edit", caseId);
+                  handleCaseAction("edit", caseProps);
                   setIsOpen(false);
                 }}
                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -223,7 +266,7 @@ const handleSearch = (term: string) => {
               </button>
               <button
                 onClick={() => {
-                  handleCaseAction("escalate", caseId);
+                  handleCaseAction("escalate", caseProps);
                   setIsOpen(false);
                 }}
                 className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -234,8 +277,8 @@ const handleSearch = (term: string) => {
               <hr className="my-1" />
               <button
                 onClick={() => {
-                  handleCaseAction("delete", caseId);
-                  setIsOpen(false);
+                  handleCaseAction("delete", caseProps);
+                  //setIsOpen(false);
                 }}
                 className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
               >
@@ -270,6 +313,15 @@ const handleSearch = (term: string) => {
 
   return (
     <AppLayout>
+      {selectedCase && (
+        <DeleteCaseModal
+          isOpen={isModalOpen}
+          onClose={closeDeleteModal}
+          onConfirm={handleDeleteConfirm}
+          caseTitle={selectedCase.title}
+          caseRef={selectedCase.caseRef}
+        />
+      )}
       <div className="space-y-6">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-8 text-white">
@@ -593,7 +645,7 @@ const handleSearch = (term: string) => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <ActionDropdown caseId={case_.id} />
+                        <ActionDropdown {...case_} />
                       </td>
                     </tr>
                   ))}
@@ -621,7 +673,7 @@ const handleSearch = (term: string) => {
                           {case_.issueCategory}
                         </p>
                       </div>
-                      <ActionDropdown caseId={case_.id} />
+                      <ActionDropdown {...case_} />
                     </div>
 
                     <div className="space-y-3">

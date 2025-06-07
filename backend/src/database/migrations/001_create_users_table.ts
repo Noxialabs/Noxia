@@ -1,13 +1,14 @@
 // ===================================================
 // src/database/migrations/001_create_users_table.ts
-import { Pool } from 'pg';
-import { logger } from '../../utils/logger.utils';
+import { Pool } from "pg";
+import { logger } from "../../utils/logger.utils";
+import bcrypt from 'bcrypt'
 
 export const up = async (pool: Pool): Promise<void> => {
   const client = await pool.connect();
-  
+
   try {
-    await client.query('BEGIN');
+    await client.query("BEGIN");
 
     // Create UUID extension if not exists
     await client.query(`
@@ -75,34 +76,45 @@ export const up = async (pool: Pool): Promise<void> => {
     `);
 
     // Insert default admin user (optional - remove if not needed)
-    await client.query(`
+    // Hash the admin password dynamically using bcrypt
+    const adminPassword = "password123";
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(adminPassword, saltRounds);
+
+    await client.query(
+      `
       INSERT INTO users (
-        email, 
-        password_hash, 
-        role, 
-        tier,
-        first_name, 
-        last_name,
-        is_active,
-        email_verified
+      email, 
+      password_hash, 
+      role, 
+      tier,
+      first_name, 
+      last_name,
+      is_active,
+      email_verified
       ) VALUES (
-        'admin@example.com',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/ixjeBOKcS', -- 'password123'
-        'admin',
-        'Tier 4',
-        'System',
-        'Administrator',
-        true,
-        true
+      $1, $2, $3, $4, $5, $6, $7, $8
       ) ON CONFLICT (email) DO NOTHING;
-    `);
+      `,
+      [
+        "admin@example.com",
+        passwordHash,
+        "admin",
+        "Tier 4",
+        "System",
+        "Administrator",
+        true,
+        true,
+      ]
+    );
 
-    await client.query('COMMIT');
-    logger.info('✅ Migration 001: Users table created successfully with admin role support');
-
+    await client.query("COMMIT");
+    logger.info(
+      "✅ Migration 001: Users table created successfully with admin role support"
+    );
   } catch (error) {
-    await client.query('ROLLBACK');
-    logger.error('❌ Migration 001 failed:', error);
+    await client.query("ROLLBACK");
+    logger.error("❌ Migration 001 failed:", error);
     throw error;
   } finally {
     client.release();
@@ -111,19 +123,20 @@ export const up = async (pool: Pool): Promise<void> => {
 
 export const down = async (pool: Pool): Promise<void> => {
   const client = await pool.connect();
-  
+
   try {
-    await client.query('BEGIN');
-    
-    await client.query('DROP TRIGGER IF EXISTS update_users_updated_at ON users;');
-    await client.query('DROP TABLE IF EXISTS users CASCADE;');
-    
-    await client.query('COMMIT');
-    logger.info('✅ Migration 001: Users table dropped successfully');
-    
+    await client.query("BEGIN");
+
+    await client.query(
+      "DROP TRIGGER IF EXISTS update_users_updated_at ON users;"
+    );
+    await client.query("DROP TABLE IF EXISTS users CASCADE;");
+
+    await client.query("COMMIT");
+    logger.info("✅ Migration 001: Users table dropped successfully");
   } catch (error) {
-    await client.query('ROLLBACK');
-    logger.error('❌ Migration 001 rollback failed:', error);
+    await client.query("ROLLBACK");
+    logger.error("❌ Migration 001 rollback failed:", error);
     throw error;
   } finally {
     client.release();

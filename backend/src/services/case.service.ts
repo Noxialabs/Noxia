@@ -1,6 +1,7 @@
 import { query } from "../database/connection";
 import {
   Case,
+  CaseStatus,
   DashboardFilters,
   EscalationAnalysis,
   UserProfile,
@@ -196,6 +197,7 @@ export class CaseService {
         userProfile = await this.getUserProfile(baseCase.userId);
       }
 
+      console.log("User Profile: ", userProfile);
       return {
         ...baseCase,
         user: userProfile,
@@ -216,14 +218,12 @@ export class CaseService {
          SELECT 
            u.*,
            COUNT(DISTINCT c1.id) as cases_submitted,
-           COUNT(DISTINCT CASE WHEN c2.status IN ('Completed', 'Resolved') THEN c2.id END) as cases_resolved,
-           COALESCE(ur.reputation_score, 50) as reputation
+           COUNT(DISTINCT CASE WHEN c2.status IN ('Completed', 'Resolved') THEN c2.id END) as cases_resolved
          FROM users u
          LEFT JOIN cases c1 ON u.id = c1.user_id
          LEFT JOIN cases c2 ON u.id = c2.user_id
-         LEFT JOIN user_reputation ur ON u.id = ur.user_id
          WHERE u.id = $1
-         GROUP BY u.id, ur.reputation_score
+         GROUP BY u.id
        `,
         [userId]
       );
@@ -242,7 +242,6 @@ export class CaseService {
         joinedAt: user.created_at,
         casesSubmitted: parseInt(user.cases_submitted),
         casesResolved: parseInt(user.cases_resolved),
-        reputation: parseInt(user.reputation),
         verified: user.email_verified || false,
         lastLoginAt: user.last_login_at,
       };
@@ -285,12 +284,46 @@ export class CaseService {
   }
 
   // Improved updateCase method with better JSONB handling
-  async updateCase(id: string, updates: Partial<Case>): Promise<Case> {
+  async updateCase(
+    id: string,
+    updates: Partial<Case>,
+    userId?: string
+  ): Promise<Case> {
     const setClause = [];
     const values = [];
     let paramIndex = 1;
 
-    for (const [key, value] of Object.entries(updates)) {
+    const processedUpdates = { ...updates };
+
+    // Check if status is being changed to "Closed"
+    if (updates.status === "Closed") {
+      // Get current case status to check if it's actually changing
+      const currentCase = await this.getCaseById(id);
+
+      if (currentCase && currentCase.status !== "Closed") {
+        processedUpdates.closedAt = new Date();
+
+        if (userId) {
+          processedUpdates.closedBy = userId;
+        }
+
+        logger.info(`Case ${id} is being closed by user ${userId || "system"}`);
+      }
+    } else if (updates.status && updates.status !== ("Closed" as CaseStatus)) {
+      const currentCase = await this.getCaseById(id);
+
+      if (currentCase && currentCase.status === "Closed") {
+        processedUpdates.closedAt = null;
+        processedUpdates.closedBy = null;
+
+        logger.info(`Case ${id} is being reopened from Closed status`);
+      }
+    }
+
+    // Always update the updated_at timestamp
+    processedUpdates.updatedAt = new Date();
+
+    for (const [key, value] of Object.entries(processedUpdates)) {
       if (value !== undefined) {
         const dbField = this.camelToSnake(key);
 
@@ -340,6 +373,9 @@ export class CaseService {
     }
 
     values.push(id);
+
+    console.log("Value: ", values);
+    console.log("Params Index: ", paramIndex);
 
     const result = await query(
       `UPDATE cases SET ${setClause.join(
@@ -1067,6 +1103,10 @@ export class CaseService {
       ethTxHash: dbCase.eth_tx_hash,
       ceFileStatus: dbCase.ce_file_status,
       submissionDate: dbCase.submission_date,
+      closedAt: dbCase.closed_at,
+      closedBy: dbCase.closed_by,
+      closureReason: dbCase.closure_reason,
+      assignedTo: dbCase.assigned_to,
       updatedAt: dbCase.updated_at,
       createdAt: dbCase.created_at,
       attachments: this.safeParseJSON(dbCase.attachments, []),

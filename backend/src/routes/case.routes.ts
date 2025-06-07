@@ -34,11 +34,13 @@ const updateCaseSchema = Joi.object({
   title: Joi.string().min(2).max(255).optional(),
   description: Joi.string().min(50).max(5000).optional(),
   jurisdiction: Joi.string().max(100).optional(),
+  assignedTo: Joi.string().max(100).optional(),
+  closureReason: Joi.string().max(255).optional(),
+  issueCategory: Joi.string().max(100).optional(),
   status: Joi.string()
     .valid("Pending", "In Progress", "Completed", "Escalated", "Closed")
     .optional(),
   priority: Joi.string().valid("Low", "Normal", "High", "Critical").optional(),
-  attachments: Joi.array().items(Joi.object()).optional(),
 });
 
 const escalateCaseSchema = Joi.object({

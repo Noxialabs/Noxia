@@ -47,7 +47,7 @@ export const up = async (pool: Pool): Promise<void> => {
         attachments JSONB DEFAULT '[]',
         metadata JSONB DEFAULT '{}',
         suggested_actions JSONB DEFAULT '[]',
-        assigned_to UUID REFERENCES users(id),
+        assigned_to VARCHAR(255),
         escalated_by UUID REFERENCES users(id),
         escalated_at TIMESTAMP,
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -62,6 +62,7 @@ export const up = async (pool: Pool): Promise<void> => {
       
       );
     `);
+       // assigned_to UUID REFERENCES users(id),
 
     // Create AI classifications table
     await client.query(`

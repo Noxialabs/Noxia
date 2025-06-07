@@ -72,7 +72,6 @@ interface UserDetails {
   tier: string;
   casesSubmitted: number;
   casesResolved: number;
-  reputation: number;
   verified: boolean;
 }
 
@@ -82,7 +81,9 @@ export default function CaseDetailsPage() {
   const router = useRouter();
   const caseId = params?.id as string;
 
-  const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
+  const [caseDetails, setCaseDetails] = useState<CaseDetails | null | any>(
+    null
+  );
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLoading, setUserLoading] = useState(false);
@@ -200,6 +201,11 @@ export default function CaseDetailsPage() {
     // Add toast notification here
   };
 
+  const handleActionClick = (action: "edit" | "escalate") => {
+    if (action == "edit") {
+    router.push(`/cases/${caseId}/edit`)
+    }
+  };
   const LoadingSkeleton = () => (
     <div className="animate-pulse space-y-6">
       <div className="h-8 bg-gray-200 rounded w-1/4"></div>
@@ -305,22 +311,19 @@ export default function CaseDetailsPage() {
                   {showActionsMenu && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-10">
                       <div className="py-1">
-                        <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <button
+                          onClick={() => handleActionClick("edit")}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
                           <Edit3 className="w-4 h-4 mr-2" />
                           Edit Case
                         </button>
-                        <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <button
+                          onClick={() => handleActionClick("escalate")}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
                           <AlertTriangle className="w-4 h-4 mr-2" />
                           Escalate
-                        </button>
-                        <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                          <Flag className="w-4 h-4 mr-2" />
-                          Add Flag
-                        </button>
-                        <hr className="my-1" />
-                        <button className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Case
                         </button>
                       </div>
                     </div>
@@ -542,7 +545,7 @@ export default function CaseDetailsPage() {
                             )}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center">
+                        {/*  <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">
                             Evidence Files
                           </span>
@@ -557,9 +560,9 @@ export default function CaseDetailsPage() {
                             Timeline Events
                           </span>
                           <span className="text-sm font-medium text-gray-900">
-                            {caseDetails.timeline?.length || 0}
+                            {caseDetails?.timeline?.length || 0}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
 
@@ -701,7 +704,7 @@ export default function CaseDetailsPage() {
                             </div>
                           </div>
                         </div>
-
+                        {/* 
                         <div className="bg-white border border-gray-200 rounded-lg p-6">
                           <h4 className="text-lg font-semibold text-gray-900 mb-4">
                             Reputation Score
@@ -725,7 +728,7 @@ export default function CaseDetailsPage() {
                                 ></div>
                               </div>
                             </div>
-                            <div className="text-center">
+                             <div className="text-center">
                               <div
                                 className={`text-2xl ${
                                   userDetails.reputation >= 80
@@ -741,11 +744,11 @@ export default function CaseDetailsPage() {
                                   ? "👍"
                                   : "📊"}
                               </div>
-                            </div>
+                            </div> 
                           </div>
                         </div>
 
-                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                       <div className="bg-white border border-gray-200 rounded-lg p-6">
                           <h4 className="text-lg font-semibold text-gray-900 mb-4">
                             Contact Actions
                           </h4>
@@ -759,7 +762,7 @@ export default function CaseDetailsPage() {
                               <span>Set Notification</span>
                             </button>
                           </div>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                   ) : (
